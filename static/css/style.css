@@ -1,0 +1,96 @@
+/* ── Palette forestière ── */
+:root {
+  --forest-dark:   #1b3a2f;
+  --forest-mid:    #2d5a45;
+  --forest-light:  #3d7a5e;
+  --forest-accent: #56a67a;
+  --forest-pale:   #e8f5ee;
+}
+
+/* ── Navbar ── */
+.bg-forest { background-color: var(--forest-dark) !important; }
+.text-forest { color: var(--forest-light) !important; }
+.text-success-light { color: #7ed4a7 !important; }
+
+/* ── Boutons ── */
+.btn-forest {
+  background-color: var(--forest-mid);
+  border-color:     var(--forest-mid);
+  color: #fff;
+}
+.btn-forest:hover { background-color: var(--forest-light); border-color: var(--forest-light); color: #fff; }
+.btn-outline-forest { color: var(--forest-mid); border-color: var(--forest-mid); }
+.btn-outline-forest:hover { background-color: var(--forest-mid); color: #fff; }
+
+/* ── Tableau header ── */
+.table-forest-header th {
+  background-color: var(--forest-pale);
+  color: var(--forest-dark);
+  font-size: .8rem;
+  text-transform: uppercase;
+  letter-spacing: .05em;
+  border-bottom: 2px solid #c4dfd0;
+}
+
+/* ── Cartes stat ── */
+.stat-card {
+  border-radius: 12px; padding: 1.2rem 1rem;
+  display: flex; flex-direction: column; align-items: center; text-align: center;
+  border: 1px solid transparent;
+}
+.stat-icon { font-size: 1.8rem; margin-bottom: .4rem; }
+.stat-value { font-size: 2rem; font-weight: 700; line-height: 1; }
+.stat-label { font-size: .75rem; text-transform: uppercase; letter-spacing: .05em; margin-top: .25rem; opacity: .8; }
+.stat-total { background: #f0f4ff; color: #3354b0; border-color: #c6d0f7; }
+.stat-dispo { background: #edfaf3; color: #196e3f; border-color: #b6e8cc; }
+.stat-util  { background: #fff0f0; color: #9b2020; border-color: #f5c0c0; }
+.stat-maint { background: #fffaec; color: #7a5500; border-color: #f5df9e; }
+
+/* ── Badges ── */
+.badge-categorie { background-color: #e4efe9; color: var(--forest-dark); font-weight: 500; font-size: .75rem; }
+.badge-role-admin     { background: #fff0f0; color: #9b2020; border: 1px solid #f5c0c0; }
+.badge-role-gerant    { background: #e8f0ff; color: #1a3a9b; border: 1px solid #b0c0f5; }
+.badge-role-operateur { background: #f0f0f0; color: #444;    border: 1px solid #ccc; }
+
+/* ── Status badges sur fiche ── */
+.status-badge { display: flex; align-items: center; padding: .6rem 1rem; border-radius: 10px; min-width: 180px; }
+.status-dispo { background: #edfaf3; color: #196e3f; border: 1px solid #b6e8cc; }
+.status-util  { background: #fff0f0; color: #9b2020; border: 1px solid #f5c0c0; }
+.status-maint { background: #fffaec; color: #7a5500; border: 1px solid #f5df9e; }
+
+/* ── Info items ── */
+.info-item { display: flex; flex-direction: column; padding: .5rem .75rem; background: #f8f9fa; border-radius: 8px; }
+.info-label { font-size: .72rem; text-transform: uppercase; letter-spacing: .05em; color: #6c757d; margin-bottom: .2rem; }
+.info-value { font-size: .9rem; color: #212529; }
+
+/* ── Avatars ── */
+.avatar-circle {
+  width: 30px; height: 30px; border-radius: 50%;
+  background: var(--forest-accent); color: #fff; font-weight: 700; font-size: .85rem;
+  display: flex; align-items: center; justify-content: center; flex-shrink: 0;
+}
+.avatar-circle-lg {
+  width: 72px; height: 72px; border-radius: 50%;
+  background: var(--forest-mid); color: #fff; font-weight: 700; font-size: 1.8rem;
+  display: flex; align-items: center; justify-content: center; margin: 0 auto;
+}
+.avatar-circle-sm {
+  width: 34px; height: 34px; border-radius: 50%;
+  background: var(--forest-pale); color: var(--forest-dark); font-weight: 700; font-size: .9rem;
+  display: flex; align-items: center; justify-content: center; flex-shrink: 0;
+}
+
+/* ── QR container ── */
+.qr-container { width: 180px; padding: 8px; background: #fff; border: 1px solid #dee2e6; border-radius: 10px; }
+
+/* ── Perm cards ── */
+.perm-card { padding: .85rem 1rem; border-radius: 8px; border-left: 4px solid; background: #f8f9fa; height: 100%; }
+
+/* ── Hover tableau ── */
+.table-hover tbody tr:hover { background-color: var(--forest-pale); }
+
+@media (max-width: 576px) {
+  .stat-card { padding: .8rem .5rem; }
+  .stat-value { font-size: 1.5rem; }
+  .qr-container { width: 140px; }
+}

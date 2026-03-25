@@ -1,0 +1,78 @@
+{% extends "base.html" %}
+{% block title %}Nouveau matériel — ForestTrack{% endblock %}
+{% block content %}
+<div class="mb-3">
+  <a href="{{ url_for('index') }}" class="btn btn-sm btn-outline-secondary">
+    <i class="bi bi-arrow-left me-1"></i>Retour
+  </a>
+</div>
+<div class="row justify-content-center">
+  <div class="col-lg-7">
+    <div class="card shadow-sm border-0">
+      <div class="card-header bg-transparent border-0 pt-4 pb-0">
+        <h2 class="h4 fw-bold mb-0"><i class="bi bi-plus-circle me-2 text-forest"></i>Nouveau matériel</h2>
+      </div>
+      <div class="card-body pt-3">
+        <form method="POST" novalidate id="formNouveauMateriel">
+          <div class="row g-3">
+            <div class="col-sm-4">
+              <label class="form-label fw-semibold">Code unique *</label>
+              <input type="text" name="code" class="form-control text-uppercase" required
+                     placeholder="Ex: TRON-006" maxlength="20">
+            </div>
+            <div class="col-sm-8">
+              <label class="form-label fw-semibold">Nom du matériel *</label>
+              <input type="text" name="nom" class="form-control" required placeholder="Ex: Tronçonneuse Stihl MS 500i">
+            </div>
+            <div class="col-sm-6">
+              <label class="form-label fw-semibold">Catégorie *</label>
+              <select name="categorie" class="form-select" required>
+                <option value="">Sélectionner…</option>
+                <option value="Abattage">Abattage</option>
+                <option value="Transport">Transport & Débardage</option>
+                <option value="Broyage">Broyage & Déchiquetage</option>
+                <option value="Plantation">Plantation & Reboisement</option>
+                <option value="Élagage">Élagage & Entretien</option>
+                <option value="Protection">Protection & Sécurité</option>
+                <option value="Mesure">Mesure & Topographie</option>
+                <option value="Autre">Autre</option>
+              </select>
+            </div>
+            <div class="col-sm-6">
+              <label class="form-label fw-semibold">Numéro de série</label>
+              <input type="text" name="numero_serie" class="form-control" placeholder="Ex: SHL-2024-001">
+            </div>
+            <div class="col-sm-6">
+              <label class="form-label fw-semibold">Emplacement initial</label>
+              <input type="text" name="emplacement" class="form-control" value="Dépôt principal">
+            </div>
+            <div class="col-sm-6">
+              <label class="form-label fw-semibold">Date d'achat</label>
+              <input type="date" name="date_achat" class="form-control">
+            </div>
+            <div class="col-12">
+              <label class="form-label fw-semibold">Description</label>
+              <textarea name="description" class="form-control" rows="3"
+                        placeholder="Caractéristiques techniques…"></textarea>
+            </div>
+          </div>
+          <hr class="my-4">
+          <div class="d-flex gap-2 justify-content-end">
+            <a href="{{ url_for('index') }}" class="btn btn-outline-secondary">Annuler</a>
+            <button type="submit" class="btn btn-forest px-4">
+              <i class="bi bi-qr-code me-2"></i>Créer et générer le QR
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}
+{% block scripts %}
+<script>
+document.querySelector('input[name="code"]').addEventListener('input', function() {
+  this.value = this.value.toUpperCase();
+});
+</script>
+{% endblock %}

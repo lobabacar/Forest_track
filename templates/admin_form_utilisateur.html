@@ -1,0 +1,84 @@
+{% extends "base.html" %}
+{% block title %}{{ titre }} — ForestTrack{% endblock %}
+{% block content %}
+<div class="mb-3">
+  <a href="{{ url_for('admin_utilisateurs') }}" class="btn btn-sm btn-outline-secondary">
+    <i class="bi bi-arrow-left me-1"></i>Retour aux utilisateurs
+  </a>
+</div>
+<div class="row justify-content-center">
+  <div class="col-lg-6">
+    <div class="card shadow-sm border-0 mb-3">
+      <div class="card-header bg-transparent border-0 pt-3 pb-0">
+        <h5 class="fw-bold mb-0"><i class="bi bi-person-circle me-2 text-forest"></i>{{ titre }}</h5>
+      </div>
+      <div class="card-body">
+        <form method="POST">
+          <input type="hidden" name="action" value="infos">
+          <div class="mb-3">
+            <label class="form-label fw-semibold">Nom complet *</label>
+            <input type="text" name="nom" class="form-control" required
+                   value="{{ user.nom if user else '' }}" placeholder="Ex: Jean Tremblay">
+          </div>
+          <div class="mb-3">
+            <label class="form-label fw-semibold">Adresse email *</label>
+            <input type="email" name="email" class="form-control" required
+                   value="{{ user.email if user else '' }}" placeholder="utilisateur@foresttrack.ca">
+          </div>
+          <div class="mb-3">
+            <label class="form-label fw-semibold">Rôle *</label>
+            <select name="role" class="form-select" required>
+              {% for role_val, role_nom in roles.items() %}
+              <option value="{{ role_val }}" {% if user and user.role == role_val %}selected{% endif %}>
+                {{ role_nom }}
+              </option>
+              {% endfor %}
+            </select>
+          </div>
+          {% if user %}
+          <div class="mb-3 form-check">
+            <input type="checkbox" name="actif" class="form-check-input" id="actif"
+                   {% if user.actif %}checked{% endif %}>
+            <label class="form-check-label" for="actif">Compte actif</label>
+          </div>
+          {% endif %}
+          {% if not user %}
+          <div class="mb-3">
+            <label class="form-label fw-semibold">Mot de passe *</label>
+            <input type="password" name="mot_de_passe" class="form-control"
+                   required minlength="6" placeholder="Minimum 6 caractères">
+          </div>
+          {% endif %}
+          <div class="d-flex gap-2 justify-content-end">
+            <a href="{{ url_for('admin_utilisateurs') }}" class="btn btn-outline-secondary">Annuler</a>
+            <button type="submit" class="btn btn-forest">
+              <i class="bi bi-check-lg me-1"></i>{{ 'Modifier' if user else 'Créer' }}
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+    {% if user %}
+    <div class="card shadow-sm border-0">
+      <div class="card-header bg-transparent border-0 pt-3 pb-0">
+        <h6 class="fw-semibold mb-0"><i class="bi bi-key me-2 text-warning"></i>Réinitialiser le mot de passe</h6>
+      </div>
+      <div class="card-body">
+        <form method="POST">
+          <input type="hidden" name="action" value="mdp">
+          <div class="mb-3">
+            <label class="form-label small fw-semibold">Nouveau mot de passe</label>
+            <input type="password" name="nouveau_mdp" class="form-control form-control-sm"
+                   required minlength="6" placeholder="Minimum 6 caractères">
+          </div>
+          <button type="submit" class="btn btn-warning btn-sm"
+                  onclick="return confirm('Réinitialiser le mot de passe de {{ user.nom }} ?')">
+            <i class="bi bi-shield-lock me-1"></i>Réinitialiser
+          </button>
+        </form>
+      </div>
+    </div>
+    {% endif %}
+  </div>
+</div>
+{% endblock %}

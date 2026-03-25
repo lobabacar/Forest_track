@@ -1,0 +1,280 @@
+{% extends "base.html" %}
+{% block title %}{{ m.nom }} — ForestTrack{% endblock %}
+{% block content %}
+<div class="mb-3">
+  <a href="{{ url_for('index') }}" class="btn btn-sm btn-outline-secondary">
+    <i class="bi bi-arrow-left me-1"></i>Retour
+  </a>
+</div>
+<div class="row g-3">
+  <div class="col-lg-8">
+
+    <div class="card shadow-sm border-0 mb-3">
+      <div class="card-body">
+        <div class="d-flex align-items-start justify-content-between flex-wrap gap-2">
+          <div>
+            <span class="badge bg-secondary font-monospace fs-6 mb-1">{{ m.code }}</span>
+            <h1 class="h4 fw-bold mb-1">{{ m.nom }}</h1>
+            <p class="text-muted mb-0"><i class="bi bi-tag me-1"></i>{{ m.categorie }}
+              {% if m.numero_serie %}&nbsp;·&nbsp;<i class="bi bi-upc me-1"></i>{{ m.numero_serie }}{% endif %}
+            </p>
+          </div>
+          <div>
+            {% if m.statut == 'disponible' %}
+              <div class="status-badge status-dispo">
+                <i class="bi bi-check-circle-fill me-2 fs-5"></i>
+                <div><div class="fw-bold">DISPONIBLE</div><small>Prêt à l'utilisation</small></div>
+              </div>
+            {% elif m.statut == 'utilisation' %}
+              <div class="status-badge status-util">
+                <i class="bi bi-person-workspace me-2 fs-5"></i>
+                <div><div class="fw-bold">EN UTILISATION</div>
+                {% if emprunt_actif %}<small>{{ emprunt_actif.nom_emprunteur }}</small>{% endif %}</div>
+              </div>
+            {% else %}
+              <div class="status-badge status-maint">
+                <i class="bi bi-wrench-adjustable me-2 fs-5"></i>
+                <div><div class="fw-bold">EN MAINTENANCE</div><small>Indisponible</small></div>
+              </div>
+            {% endif %}
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="card shadow-sm border-0 mb-3">
+      <div class="card-header bg-transparent border-0 pt-3 pb-0">
+        <h5 class="fw-semibold mb-0"><i class="bi bi-info-circle me-2 text-forest"></i>Informations</h5>
+      </div>
+      <div class="card-body">
+        <div class="row g-2">
+          <div class="col-sm-6">
+            <div class="info-item">
+              <span class="info-label"><i class="bi bi-geo-alt me-1"></i>Emplacement</span>
+              <span class="info-value">{{ m.emplacement }}</span>
+            </div>
+          </div>
+          {% if m.cree_par %}
+          <div class="col-sm-6">
+            <div class="info-item">
+              <span class="info-label"><i class="bi bi-person me-1"></i>Enregistré par</span>
+              <span class="info-value">{{ m.cree_par.nom }}</span>
+            </div>
+          </div>
+          {% endif %}
+          {% if m.description %}
+          <div class="col-12">
+            <div class="info-item">
+              <span class="info-label"><i class="bi bi-card-text me-1"></i>Description</span>
+              <span class="info-value">{{ m.description }}</span>
+            </div>
+          </div>
+          {% endif %}
+        </div>
+      </div>
+    </div>
+
+    {% if emprunt_actif %}
+    <div class="card shadow-sm border-0 border-start border-danger border-3 mb-3">
+      <div class="card-body">
+        <h5 class="fw-semibold mb-3 text-danger"><i class="bi bi-person-workspace me-2"></i>Emprunt en cours</h5>
+        <div class="row g-2">
+          <div class="col-sm-6">
+            <div class="info-item">
+              <span class="info-label">Emprunteur</span>
+              <span class="info-value fw-semibold">{{ emprunt_actif.nom_emprunteur }}</span>
+            </div>
+          </div>
+          {% if emprunt_actif.chantier %}
+          <div class="col-sm-6">
+            <div class="info-item">
+              <span class="info-label">Chantier</span>
+              <span class="info-value">{{ emprunt_actif.chantier }}</span>
+            </div>
+          </div>
+          {% endif %}
+          <div class="col-sm-6">
+            <div class="info-item">
+              <span class="info-label">Depuis</span>
+              <span class="info-value">{{ emprunt_actif.date_emprunt.strftime('%d/%m/%Y %H:%M') }}</span>
+            </div>
+          </div>
+        </div>
+        {% if current_user.peut('retourner') %}
+        <form method="POST" action="{{ url_for('retourner', code=m.code) }}" class="mt-3">
+          <button type="submit" class="btn btn-success"
+                  onclick="return confirm('Confirmer le retour ?')">
+            <i class="bi bi-check-circle me-2"></i>Enregistrer le retour
+          </button>
+        </form>
+        {% endif %}
+      </div>
+    </div>
+    {% endif %}
+
+    {% if maintenance_active %}
+    <div class="card shadow-sm border-0 border-start border-warning border-3 mb-3">
+      <div class="card-body">
+        <h5 class="fw-semibold mb-3 text-warning"><i class="bi bi-wrench me-2"></i>Maintenance en cours</h5>
+        <div class="info-item mb-3">
+          <span class="info-label">Description</span>
+          <span class="info-value">{{ maintenance_active.description }}</span>
+        </div>
+        {% if current_user.peut('maintenance') %}
+        <form method="POST" action="{{ url_for('fin_maintenance', code=m.code) }}">
+          <button type="submit" class="btn btn-success"
+                  onclick="return confirm('Confirmer la fin de maintenance ?')">
+            <i class="bi bi-check-circle me-2"></i>Terminer la maintenance
+          </button>
+        </form>
+        {% endif %}
+      </div>
+    </div>
+    {% endif %}
+
+    {% if m.statut == 'disponible' %}
+    <div class="row g-3 mb-3">
+      {% if current_user.peut('emprunter') %}
+      <div class="col-md-6">
+        <div class="card shadow-sm border-0 h-100">
+          <div class="card-header bg-transparent border-0 pt-3 pb-0">
+            <h5 class="fw-semibold mb-0 text-success"><i class="bi bi-box-arrow-right me-2"></i>Emprunter</h5>
+          </div>
+          <div class="card-body">
+            <form method="POST" action="{{ url_for('emprunter', code=m.code) }}">
+              <div class="mb-2">
+                <label class="form-label small fw-semibold">Emprunteur</label>
+                <input type="text" class="form-control form-control-sm"
+                       value="{{ current_user.nom }}" disabled>
+              </div>
+              <div class="mb-2">
+                <label class="form-label small fw-semibold">Chantier / Destination</label>
+                <input type="text" name="chantier" class="form-control form-control-sm"
+                       placeholder="Ex: Secteur A, Forêt Nord">
+              </div>
+              <div class="mb-2">
+                <label class="form-label small fw-semibold">Retour prévu</label>
+                <input type="date" name="date_retour_prevue" class="form-control form-control-sm">
+              </div>
+              <div class="mb-3">
+                <label class="form-label small fw-semibold">Notes</label>
+                <textarea name="notes" class="form-control form-control-sm" rows="2"></textarea>
+              </div>
+              <button type="submit" class="btn btn-success w-100">
+                <i class="bi bi-box-arrow-right me-2"></i>Confirmer l'emprunt
+              </button>
+            </form>
+          </div>
+        </div>
+      </div>
+      {% endif %}
+      {% if current_user.peut('maintenance') %}
+      <div class="col-md-6">
+        <div class="card shadow-sm border-0 h-100">
+          <div class="card-header bg-transparent border-0 pt-3 pb-0">
+            <h5 class="fw-semibold mb-0 text-warning"><i class="bi bi-wrench me-2"></i>Maintenance</h5>
+          </div>
+          <div class="card-body">
+            <form method="POST" action="{{ url_for('mise_en_maintenance', code=m.code) }}">
+              <div class="mb-2">
+                <label class="form-label small fw-semibold">Description *</label>
+                <textarea name="description" class="form-control form-control-sm" rows="3" required></textarea>
+              </div>
+              <div class="mb-2">
+                <label class="form-label small fw-semibold">Technicien</label>
+                <input type="text" name="technicien" class="form-control form-control-sm">
+              </div>
+              <div class="mb-3">
+                <label class="form-label small fw-semibold">Coût estimé ($)</label>
+                <input type="number" name="cout" class="form-control form-control-sm" step="0.01">
+              </div>
+              <button type="submit" class="btn btn-warning w-100">
+                <i class="bi bi-wrench me-2"></i>Mettre en maintenance
+              </button>
+            </form>
+          </div>
+        </div>
+      </div>
+      {% endif %}
+    </div>
+    {% endif %}
+
+    {% if m.emprunts %}
+    <div class="card shadow-sm border-0 mb-3">
+      <div class="card-header bg-transparent border-0 pt-3 pb-0 d-flex align-items-center justify-content-between">
+        <h5 class="fw-semibold mb-0"><i class="bi bi-clock-history me-2 text-forest"></i>Historique des emprunts</h5>
+        <span class="badge bg-secondary">{{ m.emprunts|length }}</span>
+      </div>
+      <div class="card-body p-0">
+        <div class="table-responsive">
+          <table class="table table-sm align-middle mb-0">
+            <thead class="table-light">
+              <tr>
+                <th class="ps-3">Emprunteur</th>
+                <th>Chantier</th>
+                <th>Emprunt</th>
+                <th>Retour</th>
+                <th>Statut</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for e in m.emprunts %}
+              <tr>
+                <td class="ps-3 fw-semibold">{{ e.nom_emprunteur }}</td>
+                <td class="text-muted small">{{ e.chantier or '—' }}</td>
+                <td class="small">{{ e.date_emprunt.strftime('%d/%m/%Y') }}</td>
+                <td class="small">{{ e.date_retour.strftime('%d/%m/%Y') if e.date_retour else '—' }}</td>
+                <td>
+                  {% if e.actif %}
+                  <span class="badge bg-danger-subtle text-danger">En cours</span>
+                  {% else %}
+                  <span class="badge bg-success-subtle text-success">Retourné</span>
+                  {% endif %}
+                </td>
+              </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+    {% endif %}
+  </div>
+
+  <div class="col-lg-4">
+    <div class="card shadow-sm border-0 text-center mb-3">
+      <div class="card-body py-4">
+        <h5 class="fw-semibold mb-3"><i class="bi bi-qr-code me-2 text-forest"></i>Code QR</h5>
+        <div class="qr-container mx-auto mb-3">
+          <img src="data:image/png;base64,{{ qr_b64 }}" alt="QR {{ m.code }}" class="img-fluid rounded">
+        </div>
+        <p class="text-muted small mb-3">Scanner pour accéder à cette fiche</p>
+        <a href="{{ url_for('qr_image', code=m.code) }}" class="btn btn-outline-forest w-100">
+          <i class="bi bi-download me-2"></i>Télécharger le QR
+        </a>
+      </div>
+    </div>
+    <div class="card shadow-sm border-0">
+      <div class="card-body">
+        <h6 class="fw-semibold mb-3 text-muted text-uppercase small">Infos rapides</h6>
+        <ul class="list-unstyled mb-0">
+          <li class="d-flex justify-content-between align-items-center py-2 border-bottom">
+            <span class="small text-muted">Total emprunts</span>
+            <span class="badge bg-secondary">{{ m.emprunts|length }}</span>
+          </li>
+          <li class="d-flex justify-content-between align-items-center py-2 border-bottom">
+            <span class="small text-muted">Maintenances</span>
+            <span class="badge bg-secondary">{{ m.maintenances|length }}</span>
+          </li>
+          {% if m.cree_par %}
+          <li class="d-flex justify-content-between align-items-center py-2">
+            <span class="small text-muted">Créé par</span>
+            <span class="small">{{ m.cree_par.nom }}</span>
+          </li>
+          {% endif %}
+        </ul>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

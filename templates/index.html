@@ -1,0 +1,137 @@
+{% extends "base.html" %}
+{% block title %}Tableau de bord — ForestTrack{% endblock %}
+{% block content %}
+<div class="d-flex align-items-center justify-content-between mb-4 flex-wrap gap-2">
+  <div>
+    <h1 class="h3 fw-bold mb-0"><i class="bi bi-speedometer2 me-2 text-forest"></i>Tableau de bord</h1>
+    <p class="text-muted small mb-0">Vue d'ensemble du parc matériel</p>
+  </div>
+  {% if current_user.peut('ajouter') %}
+  <a href="{{ url_for('nouveau_materiel') }}" class="btn btn-forest">
+    <i class="bi bi-plus-lg me-1"></i>Nouveau matériel
+  </a>
+  {% endif %}
+</div>
+
+<div class="row g-3 mb-4">
+  <div class="col-6 col-md-3">
+    <div class="stat-card stat-total">
+      <div class="stat-icon"><i class="bi bi-boxes"></i></div>
+      <div class="stat-value">{{ total }}</div>
+      <div class="stat-label">Total matériels</div>
+    </div>
+  </div>
+  <div class="col-6 col-md-3">
+    <div class="stat-card stat-dispo">
+      <div class="stat-icon"><i class="bi bi-check-circle-fill"></i></div>
+      <div class="stat-value">{{ disponibles }}</div>
+      <div class="stat-label">Disponibles</div>
+    </div>
+  </div>
+  <div class="col-6 col-md-3">
+    <div class="stat-card stat-util">
+      <div class="stat-icon"><i class="bi bi-person-workspace"></i></div>
+      <div class="stat-value">{{ en_utilisation }}</div>
+      <div class="stat-label">En utilisation</div>
+    </div>
+  </div>
+  <div class="col-6 col-md-3">
+    <div class="stat-card stat-maint">
+      <div class="stat-icon"><i class="bi bi-wrench-adjustable"></i></div>
+      <div class="stat-value">{{ en_maintenance }}</div>
+      <div class="stat-label">En maintenance</div>
+    </div>
+  </div>
+</div>
+
+<div class="card shadow-sm border-0 mb-3">
+  <div class="card-body py-2">
+    <div class="row g-2 align-items-center">
+      <div class="col-md-5">
+        <div class="input-group">
+          <span class="input-group-text bg-white border-end-0"><i class="bi bi-search text-muted"></i></span>
+          <input type="text" id="searchInput" class="form-control border-start-0" placeholder="Rechercher un matériel…">
+        </div>
+      </div>
+      <div class="col-md-3">
+        <select id="filtreStatut" class="form-select">
+          <option value="">Tous les statuts</option>
+          <option value="disponible">✅ Disponible</option>
+          <option value="utilisation">🔴 En utilisation</option>
+          <option value="maintenance">🟡 En maintenance</option>
+        </select>
+      </div>
+      <div class="col-md-3">
+        <select id="filtreCategorie" class="form-select">
+          <option value="">Toutes catégories</option>
+          {% set categories = materiels | map(attribute='categorie') | unique | list %}
+          {% for cat in categories %}
+          <option value="{{ cat }}">{{ cat }}</option>
+          {% endfor %}
+        </select>
+      </div>
+      <div class="col-md-1 text-end">
+        <button class="btn btn-outline-secondary btn-sm" id="resetFiltres"><i class="bi bi-x-lg"></i></button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="card shadow-sm border-0">
+  <div class="card-body p-0">
+    <div class="table-responsive">
+      <table class="table table-hover align-middle mb-0" id="tableMateriel">
+        <thead class="table-forest-header">
+          <tr>
+            <th class="ps-3">Code</th>
+            <th>Matériel</th>
+            <th class="d-none d-md-table-cell">Catégorie</th>
+            <th class="d-none d-md-table-cell">Emplacement</th>
+            <th>Statut</th>
+            <th class="text-end pe-3">Actions</th>
+          </tr>
+        </thead>
+        <tbody id="tableBody">
+          {% for m in materiels %}
+          <tr class="materiel-row" data-nom="{{ m.nom|lower }}" data-code="{{ m.code|lower }}"
+              data-statut="{{ m.statut }}" data-categorie="{{ m.categorie }}">
+            <td class="ps-3"><span class="badge bg-secondary font-monospace">{{ m.code }}</span></td>
+            <td>
+              <div class="fw-semibold">{{ m.nom }}</div>
+              {% if m.numero_serie %}<small class="text-muted">S/N: {{ m.numero_serie }}</small>{% endif %}
+            </td>
+            <td class="d-none d-md-table-cell"><span class="badge badge-categorie">{{ m.categorie }}</span></td>
+            <td class="d-none d-md-table-cell text-muted small"><i class="bi bi-geo-alt me-1"></i>{{ m.emplacement }}</td>
+            <td>
+              {% if m.statut == 'disponible' %}
+                <span class="badge bg-success-subtle text-success border border-success-subtle px-2 py-1">
+                  <i class="bi bi-check-circle me-1"></i>Disponible</span>
+              {% elif m.statut == 'utilisation' %}
+                <span class="badge bg-danger-subtle text-danger border border-danger-subtle px-2 py-1">
+                  <i class="bi bi-person-workspace me-1"></i>En utilisation</span>
+              {% else %}
+                <span class="badge bg-warning-subtle text-warning border border-warning-subtle px-2 py-1">
+                  <i class="bi bi-wrench me-1"></i>Maintenance</span>
+              {% endif %}
+            </td>
+            <td class="text-end pe-3">
+              <a href="{{ url_for('fiche_materiel', code=m.code) }}" class="btn btn-sm btn-outline-forest">
+                <i class="bi bi-qr-code me-1"></i>Fiche
+              </a>
+            </td>
+          </tr>
+          {% else %}
+          <tr><td colspan="6" class="text-center text-muted py-5">
+            <i class="bi bi-inbox fs-2 d-block mb-2"></i>Aucun matériel.
+            <a href="{{ url_for('nouveau_materiel') }}">Ajouter le premier</a>
+          </td></tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+<div id="noResult" class="text-center text-muted py-4 d-none">
+  <i class="bi bi-search fs-3 d-block mb-2"></i>Aucun résultat.
+</div>
+{% endblock %}

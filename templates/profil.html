@@ -1,0 +1,133 @@
+{% extends "base.html" %}
+{% block title %}Mon profil — ForestTrack{% endblock %}
+{% block content %}
+<div class="mb-3">
+  <a href="{{ url_for('index') }}" class="btn btn-sm btn-outline-secondary">
+    <i class="bi bi-arrow-left me-1"></i>Retour
+  </a>
+</div>
+<div class="row g-3">
+  <div class="col-lg-5">
+    <div class="card shadow-sm border-0 mb-3">
+      <div class="card-body text-center py-4">
+        <div class="avatar-circle-lg mx-auto mb-3">{{ current_user.nom[0].upper() }}</div>
+        <h4 class="fw-bold mb-1">{{ current_user.nom }}</h4>
+        <p class="text-muted mb-2">{{ current_user.email }}</p>
+        <span class="badge badge-role-{{ current_user.role }} fs-6 px-3 py-2">
+          {{ current_user.role_label }}
+        </span>
+        {% if current_user.derniere_connexion %}
+        <p class="text-muted small mt-2 mb-0">
+          <i class="bi bi-clock me-1"></i>Dernière connexion :
+          {{ current_user.derniere_connexion.strftime('%d/%m/%Y %H:%M') }}
+        </p>
+        {% endif %}
+      </div>
+    </div>
+    <div class="card shadow-sm border-0 mb-3">
+      <div class="card-header bg-transparent border-0 pt-3 pb-0">
+        <h6 class="fw-semibold mb-0"><i class="bi bi-person me-2 text-forest"></i>Informations</h6>
+      </div>
+      <div class="card-body">
+        <form method="POST">
+          <input type="hidden" name="action" value="infos">
+          <div class="mb-3">
+            <label class="form-label small fw-semibold">Nom complet</label>
+            <input type="text" name="nom" class="form-control" value="{{ current_user.nom }}" required>
+          </div>
+          <div class="mb-3">
+            <label class="form-label small fw-semibold">Email</label>
+            <input type="email" class="form-control" value="{{ current_user.email }}" disabled>
+          </div>
+          <button type="submit" class="btn btn-forest btn-sm">
+            <i class="bi bi-check-lg me-1"></i>Enregistrer
+          </button>
+        </form>
+      </div>
+    </div>
+    <div class="card shadow-sm border-0">
+      <div class="card-header bg-transparent border-0 pt-3 pb-0">
+        <h6 class="fw-semibold mb-0"><i class="bi bi-key me-2 text-forest"></i>Changer le mot de passe</h6>
+      </div>
+      <div class="card-body">
+        <form method="POST" id="formMdp">
+          <input type="hidden" name="action" value="mdp">
+          <div class="mb-2">
+            <label class="form-label small fw-semibold">Mot de passe actuel</label>
+            <input type="password" name="ancien_mdp" class="form-control form-control-sm" required>
+          </div>
+          <div class="mb-2">
+            <label class="form-label small fw-semibold">Nouveau mot de passe</label>
+            <input type="password" name="nouveau_mdp" id="nvMdp" class="form-control form-control-sm" required minlength="6">
+          </div>
+          <div class="mb-3">
+            <label class="form-label small fw-semibold">Confirmer</label>
+            <input type="password" name="confirmer_mdp" id="confMdp" class="form-control form-control-sm" required>
+          </div>
+          <button type="submit" class="btn btn-outline-forest btn-sm">
+            <i class="bi bi-shield-lock me-1"></i>Modifier
+          </button>
+        </form>
+      </div>
+    </div>
+  </div>
+  <div class="col-lg-7">
+    <div class="card shadow-sm border-0">
+      <div class="card-header bg-transparent border-0 pt-3 pb-0 d-flex align-items-center justify-content-between">
+        <h6 class="fw-semibold mb-0"><i class="bi bi-clock-history me-2 text-forest"></i>Mes emprunts récents</h6>
+        <span class="badge bg-secondary">{{ mes_emprunts|length }}</span>
+      </div>
+      <div class="card-body p-0">
+        {% if mes_emprunts %}
+        <div class="table-responsive">
+          <table class="table table-sm align-middle mb-0">
+            <thead class="table-light">
+              <tr>
+                <th class="ps-3">Matériel</th>
+                <th>Chantier</th>
+                <th>Date</th>
+                <th>Statut</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for e in mes_emprunts %}
+              <tr>
+                <td class="ps-3">
+                  <a href="{{ url_for('fiche_materiel', code=e.materiel.code) }}"
+                     class="fw-semibold text-decoration-none text-forest">{{ e.materiel.nom }}</a>
+                  <div class="small text-muted font-monospace">{{ e.materiel.code }}</div>
+                </td>
+                <td class="small text-muted">{{ e.chantier or '—' }}</td>
+                <td class="small">{{ e.date_emprunt.strftime('%d/%m/%Y') }}</td>
+                <td>
+                  {% if e.actif %}
+                  <span class="badge bg-danger-subtle text-danger">En cours</span>
+                  {% else %}
+                  <span class="badge bg-success-subtle text-success">Retourné</span>
+                  {% endif %}
+                </td>
+              </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+        {% else %}
+        <div class="text-center text-muted py-4">
+          <i class="bi bi-inbox fs-3 d-block mb-2"></i>Aucun emprunt enregistré.
+        </div>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}
+{% block scripts %}
+<script>
+document.getElementById('formMdp').addEventListener('submit', function(e) {
+  if (document.getElementById('nvMdp').value !== document.getElementById('confMdp').value) {
+    e.preventDefault();
+    alert('Les mots de passe ne correspondent pas.');
+  }
+});
+</script>
+{% endblock %}
