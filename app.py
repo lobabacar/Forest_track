@@ -27,8 +27,17 @@ def nb_retards():
 load_dotenv()
 
 app = Flask(__name__)
-app.config['SECRET_KEY'] = os.getenv('SECRET_KEY', 'dev-fallback-key-insecure')
-app.config['SQLALCHEMY_DATABASE_URI'] = os.getenv('DATABASE_URL', 'sqlite:///forestier.db')
+#app.config['SECRET_KEY'] = os.getenv('SECRET_KEY', 'dev-fallback-key-insecure') # decoche en developpement
+#app.config['SQLALCHEMY_DATABASE_URI'] = os.getenv('DATABASE_URL', 'sqlite:///forestier.db')   # decovhe en developpement
+#production
+db_url = os.getenv('DATABASE_URL', 'sqlite:///forestier.db')
+if db_url.startswith('postgres://'):
+    db_url = db_url.replace('postgres://', 'postgresql://', 1)
+
+app.config['SECRET_KEY']              = os.getenv('SECRET_KEY', 'dev-key-insecure')
+app.config['SQLALCHEMY_DATABASE_URI'] = db_url
+app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
+
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 @app.context_processor
 def inject_retards():
