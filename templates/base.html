@@ -24,6 +24,11 @@
         <li class="nav-item">
           <a class="nav-link" href="{{ url_for('index') }}"><i class="bi bi-speedometer2 me-1"></i>Tableau de bord</a>
         </li>
+        <li class="nav-item">
+            <a class="nav-link" href="{{ url_for('carte') }}">
+                <i class="bi bi-map me-1"></i>Carte
+            </a>
+        </li>
         {% if current_user.is_authenticated and current_user.peut('ajouter') %}
         <li class="nav-item">
           <a class="nav-link" href="{{ url_for('nouveau_materiel') }}"><i class="bi bi-plus-circle me-1"></i>Ajouter matériel</a>

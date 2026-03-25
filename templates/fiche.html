@@ -141,8 +141,11 @@
             <h5 class="fw-semibold mb-0 text-success"><i class="bi bi-box-arrow-right me-2"></i>Emprunter</h5>
           </div>
           <div class="card-body">
-            <form method="POST" action="{{ url_for('emprunter', code=m.code) }}">
+            <form method="POST" action="{{ url_for('emprunter', code=m.code) }}" id="formEmprunt">
               <div class="mb-2">
+                <!-- Champs GPS cachés — remplis automatiquement par le navigateur -->
+                <input type="hidden" name="latitude"  id="gps_lat">
+                <input type="hidden" name="longitude" id="gps_lon">
                 <label class="form-label small fw-semibold">Emprunteur</label>
                 <input type="text" class="form-control form-control-sm"
                        value="{{ current_user.nom }}" disabled>
@@ -277,4 +280,16 @@
     </div>
   </div>
 </div>
+{% endblock %}
+{% block scripts %}
+<script>
+if (navigator.geolocation) {
+  navigator.geolocation.getCurrentPosition(function(pos) {
+    document.getElementById('gps_lat').value = pos.coords.latitude.toFixed(6);
+    document.getElementById('gps_lon').value = pos.coords.longitude.toFixed(6);
+  }, function() {
+    console.log('GPS non disponible ou refusé.');
+  }, { enableHighAccuracy: true, timeout: 8000 });
+}
+</script>
 {% endblock %}

@@ -1,0 +1,393 @@
+{% extends "base.html" %}
+{% block title %}Carte des matériels — ForestTrack{% endblock %}
+
+{% block content %}
+<div class="d-flex align-items-center justify-content-between mb-3 flex-wrap gap-2">
+  <div>
+    <h1 class="h3 fw-bold mb-0"><i class="bi bi-map me-2 text-forest"></i>Carte des matériels</h1>
+    <p class="text-muted small mb-0">Localisation en temps réel par dernier scan QR</p>
+  </div>
+  <div class="d-flex gap-2">
+    <button class="btn btn-sm btn-outline-secondary" id="btnCentrer">
+      <i class="bi bi-crosshair me-1"></i>Centrer
+    </button>
+    <a href="{{ url_for('index') }}" class="btn btn-sm btn-outline-secondary">
+      <i class="bi bi-list-ul me-1"></i>Vue liste
+    </a>
+  </div>
+</div>
+
+<div class="row g-3">
+
+  <!-- Panneau latéral -->
+  <div class="col-lg-3">
+    <div class="card shadow-sm border-0" style="height:600px; display:flex; flex-direction:column;">
+      <div class="card-body pb-0" style="flex-shrink:0">
+        <div class="input-group mb-2">
+          <span class="input-group-text bg-white border-end-0">
+            <i class="bi bi-search text-muted" style="font-size:14px"></i>
+          </span>
+          <input type="text" id="sideSearch" class="form-control border-start-0 form-control-sm"
+                 placeholder="Rechercher…">
+        </div>
+        <div class="d-flex gap-1 flex-wrap mb-2">
+          <button class="btn-filtre active" data-statut="">Tous</button>
+          <button class="btn-filtre" data-statut="disponible" style="background:#edfaf3;color:#196e3f;border-color:#b6e8cc">Disponible</button>
+          <button class="btn-filtre" data-statut="utilisation" style="background:#fff0f0;color:#9b2020;border-color:#f5c0c0">Utilisé</button>
+          <button class="btn-filtre" data-statut="maintenance" style="background:#fffaec;color:#7a5500;border-color:#f5df9e">Maint.</button>
+        </div>
+      </div>
+
+      <div id="listeMateriel" style="flex:1;overflow-y:auto;border-top:0.5px solid #eee;">
+        <div class="text-center text-muted py-4 small">
+          <div class="spinner-border spinner-border-sm me-2"></div>Chargement…
+        </div>
+      </div>
+
+      <div class="card-footer bg-transparent" style="flex-shrink:0">
+        <div class="d-flex gap-3" style="font-size:11px">
+          <span><span style="display:inline-block;width:10px;height:10px;border-radius:50%;background:#2d5a45;margin-right:4px"></span>Disponible</span>
+          <span><span style="display:inline-block;width:10px;height:10px;border-radius:50%;background:#c0392b;margin-right:4px"></span>Utilisé</span>
+          <span><span style="display:inline-block;width:10px;height:10px;border-radius:50%;background:#d4a017;margin-right:4px"></span>Maint.</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Carte -->
+  <div class="col-lg-9">
+    <div class="card shadow-sm border-0 p-0 overflow-hidden" style="height:600px;position:relative;">
+      <div id="carte-ol" style="width:100%;height:100%;"></div>
+
+      <!-- Alerte aucun GPS -->
+      <div id="alerteGPS" class="d-none" style="position:absolute;top:10px;left:50%;transform:translateX(-50%);z-index:999;background:#fff3cd;border:0.5px solid #ffc107;border-radius:8px;padding:8px 14px;font-size:12px;white-space:nowrap;">
+        <i class="bi bi-exclamation-triangle me-2 text-warning"></i>
+        Aucun matériel localisé — scannez un QR code sur le terrain.
+      </div>
+
+      <!-- Popup -->
+      <div id="popup-ol" style="display:none;position:absolute;background:#fff;border-radius:10px;border:0.5px solid #ddd;padding:12px 14px;min-width:200px;font-size:13px;z-index:100;pointer-events:auto;">
+        <a href="#" id="popup-closer" style="position:absolute;top:6px;right:10px;font-size:12px;color:#888;text-decoration:none;">✕</a>
+        <div id="popup-content"></div>
+      </div>
+    </div>
+  </div>
+
+</div>
+{% endblock %}
+
+{% block scripts %}
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/ol@9.2.4/ol.css">
+<script src="https://cdn.jsdelivr.net/npm/ol@9.2.4/dist/ol.js"></script>
+
+<style>
+.btn-filtre {
+  border: 0.5px solid #ccc;
+  border-radius: 12px;
+  padding: 2px 10px;
+  font-size: 11px;
+  cursor: pointer;
+  background: #fff;
+  color: #555;
+}
+.btn-filtre.active {
+  background: #1b3a2f !important;
+  color: #fff !important;
+  border-color: #1b3a2f !important;
+}
+.item-carte {
+  padding: 10px 14px;
+  border-bottom: 0.5px solid #f0f0f0;
+  cursor: pointer;
+  font-size: 12px;
+}
+.item-carte:hover { background: #f5fbf7; }
+.item-carte.actif { background: #e8f5ee; border-left: 3px solid #2d5a45; }
+.sans-coords { opacity: 0.5; }
+.ol-zoom { top: 10px !important; right: 10px !important; left: auto !important; }
+</style>
+
+<script>
+(function () {
+
+  const COULEURS = {
+    disponible:  '#2d5a45',
+    utilisation: '#c0392b',
+    maintenance: '#d4a017',
+  };
+
+  let carteOl, vectorSource, vectorLayer, popupOverlay;
+  let tousMat = [], filtre = '', recherche = '';
+
+  // ── Marqueur SVG coloré ───────────────────────────────────
+  function svgMarqueur(statut) {
+    const c = COULEURS[statut] || '#888';
+    return 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(
+      `<svg xmlns="http://www.w3.org/2000/svg" width="30" height="38" viewBox="0 0 30 38">
+        <path d="M15 0C6.7 0 0 6.7 0 15c0 9.4 15 23 15 23S30 24.4 30 15C30 6.7 23.3 0 15 0z" fill="${c}"/>
+        <circle cx="15" cy="15" r="6" fill="white" opacity="0.9"/>
+      </svg>`
+    );
+  }
+
+  // ── Initialisation OpenLayers ─────────────────────────────
+  function initCarte() {
+    vectorSource = new ol.source.Vector();
+
+    vectorLayer = new ol.layer.Vector({
+      source: vectorSource,
+      style: function (feature) {
+        return new ol.style.Style({
+          image: new ol.style.Icon({
+            src: svgMarqueur(feature.get('statut')),
+            anchor: [0.5, 1],
+          }),
+          text: new ol.style.Text({
+            text: feature.get('code'),
+            offsetY: 8,
+            font: '600 11px system-ui, sans-serif',
+            fill: new ol.style.Fill({ color: '#1b3a2f' }),
+            backgroundFill: new ol.style.Fill({ color: 'rgba(255,255,255,0.9)' }),
+            padding: [2, 4, 2, 4],
+          }),
+        });
+      },
+    });
+
+    carteOl = new ol.Map({
+      target: 'carte-ol',
+      layers: [
+        new ol.layer.Tile({ source: new ol.source.OSM() }),
+        vectorLayer,
+      ],
+      view: new ol.View({
+        center: ol.proj.fromLonLat([-72.5, 47.5]),
+        zoom: 8,
+      }),
+      controls: ol.control.defaults.defaults({ zoom: true }),
+    });
+
+    // Popup overlay positionné via CSS absolu
+    carteOl.on('click', function (evt) {
+      const feature = carteOl.forEachFeatureAtPixel(evt.pixel, f => f);
+      if (feature) {
+        const pixel = carteOl.getPixelFromCoordinate(evt.coordinate);
+        afficherPopup(feature, pixel);
+        surlignerItem(feature.get('code'));
+      } else {
+        fermerPopup();
+      }
+    });
+
+    carteOl.on('pointermove', function (evt) {
+      carteOl.getTargetElement().style.cursor =
+        carteOl.hasFeatureAtPixel(evt.pixel) ? 'pointer' : '';
+    });
+
+    // Fermer popup
+    document.getElementById('popup-closer').addEventListener('click', function (e) {
+      e.preventDefault();
+      fermerPopup();
+    });
+  }
+
+  function afficherPopup(feature, pixel) {
+    const m   = feature.getProperties();
+    const col = m.statut === 'disponible' ? 'background:#edfaf3;color:#196e3f' :
+                m.statut === 'utilisation' ? 'background:#fff0f0;color:#9b2020' :
+                'background:#fffaec;color:#7a5500';
+    const lbl = m.statut === 'disponible' ? 'Disponible' :
+                m.statut === 'utilisation' ? 'En utilisation' : 'En maintenance';
+
+    document.getElementById('popup-content').innerHTML = `
+      <div style="font-weight:700;color:#1b3a2f;margin-bottom:5px;font-size:13px;padding-right:16px">${m.nom}</div>
+      <span style="${col};border-radius:4px;padding:1px 8px;font-size:11px;font-weight:600;display:inline-block;margin-bottom:6px">${lbl}</span>
+      <div style="font-size:11px;color:#666;margin-bottom:2px"><i class="bi bi-upc me-1"></i>${m.code}</div>
+      <div style="font-size:11px;color:#666;margin-bottom:2px"><i class="bi bi-geo-alt me-1"></i>${m.emplacement}</div>
+      ${m.dernier_scan ? `<div style="font-size:11px;color:#666;margin-bottom:2px"><i class="bi bi-clock me-1"></i>${m.dernier_scan}</div>` : ''}
+      ${m.emprunteur   ? `<div style="font-size:11px;color:#666;margin-bottom:2px"><i class="bi bi-person me-1"></i>${m.emprunteur}</div>` : ''}
+      <a href="${m.url_fiche}" style="display:block;margin-top:8px;background:#2d5a45;color:#fff;border-radius:6px;padding:5px 10px;text-align:center;text-decoration:none;font-size:12px;font-weight:600;">
+        Voir la fiche →
+      </a>`;
+
+    const popup = document.getElementById('popup-ol');
+    popup.style.display  = 'block';
+    popup.style.left     = (pixel[0] - 100) + 'px';
+    popup.style.top      = (pixel[1] - popup.offsetHeight - 50) + 'px';
+  }
+
+  function fermerPopup() {
+    document.getElementById('popup-ol').style.display = 'none';
+  }
+
+  // ── Chargement des données API ────────────────────────────
+  function chargerMateriels() {
+    fetch('{{ url_for("api_carte_materiels") }}')
+      .then(r => {
+        if (!r.ok) throw new Error('Erreur API ' + r.status);
+        return r.json();
+      })
+      .then(data => {
+        tousMat = data;
+        afficherListe();
+        afficherMarqueurs();
+      })
+      .catch(err => {
+        console.error('Erreur chargement carte:', err);
+        document.getElementById('listeMateriel').innerHTML =
+          `<div class="text-center text-danger py-4 small">
+             <i class="bi bi-x-circle me-2"></i>Erreur : ${err.message}
+           </div>`;
+      });
+  }
+
+  // ── Marqueurs sur la carte ────────────────────────────────
+  function afficherMarqueurs() {
+    vectorSource.clear();
+
+    const visibles = tousMat.filter(m =>
+      (!filtre    || m.statut === filtre) &&
+      (!recherche || m.nom.toLowerCase().includes(recherche) ||
+                     m.code.toLowerCase().includes(recherche))
+    );
+    const avecCoords = visibles.filter(m => m.latitude && m.longitude);
+
+    avecCoords.forEach(m => {
+      const feat = new ol.Feature({
+        geometry: new ol.geom.Point(ol.proj.fromLonLat([m.longitude, m.latitude])),
+        code: m.code, nom: m.nom, statut: m.statut,
+        emplacement: m.emplacement, dernier_scan: m.dernier_scan,
+        emprunteur: m.emprunteur, url_fiche: m.url_fiche,
+      });
+      vectorSource.addFeature(feat);
+    });
+
+    // Alerte si aucune coordonnée
+    document.getElementById('alerteGPS')
+      .classList.toggle('d-none', avecCoords.length > 0);
+
+    // Zoom automatique sur les marqueurs
+    if (avecCoords.length > 0) {
+      carteOl.getView().fit(vectorSource.getExtent(), {
+        padding: [60, 60, 60, 60],
+        maxZoom: 14,
+        duration: 600,
+      });
+    }
+  }
+
+  // ── Liste latérale ────────────────────────────────────────
+  function afficherListe() {
+    const liste = document.getElementById('listeMateriel');
+    const visibles = tousMat.filter(m =>
+      (!filtre    || m.statut === filtre) &&
+      (!recherche || m.nom.toLowerCase().includes(recherche) ||
+                     m.code.toLowerCase().includes(recherche))
+    );
+
+    if (visibles.length === 0) {
+      liste.innerHTML = '<div class="text-center text-muted py-4 small">Aucun matériel</div>';
+      return;
+    }
+
+    liste.innerHTML = visibles.map(m => {
+      const hasCoords = m.latitude && m.longitude;
+      const col = m.statut === 'disponible' ? 'background:#edfaf3;color:#196e3f' :
+                  m.statut === 'utilisation' ? 'background:#fff0f0;color:#9b2020' :
+                  'background:#fffaec;color:#7a5500';
+      const ico = m.statut === 'disponible' ? '✓' :
+                  m.statut === 'utilisation' ? '●' : '⚙';
+      return `
+        <div class="item-carte ${hasCoords ? '' : 'sans-coords'}"
+             data-code="${m.code}"
+             data-lat="${m.latitude || ''}"
+             data-lon="${m.longitude || ''}">
+          <div style="display:flex;justify-content:space-between;align-items:center">
+            <code style="font-size:10px;background:#eee;border-radius:3px;padding:1px 5px;color:#444">${m.code}</code>
+            <span style="${col};border-radius:4px;padding:1px 7px;font-size:10px;font-weight:600">${ico}</span>
+          </div>
+          <div style="font-weight:600;color:#1b3a2f;margin:3px 0 1px">${m.nom}</div>
+          <div style="font-size:11px;color:#888">
+            ${hasCoords ? '📍' : '⚠️'} ${m.emplacement}
+            ${m.dernier_scan ? `<span style="font-size:10px;margin-left:4px">· ${m.dernier_scan}</span>` : ''}
+          </div>
+        </div>`;
+    }).join('');
+
+    // Clic sur un item → centrer la carte et ouvrir popup
+    liste.querySelectorAll('.item-carte').forEach(el => {
+      el.addEventListener('click', function () {
+        const lat = parseFloat(this.dataset.lat);
+        const lon = parseFloat(this.dataset.lon);
+        surlignerItem(this.dataset.code);
+        fermerPopup();
+        if (lat && lon) {
+          carteOl.getView().animate({
+            center: ol.proj.fromLonLat([lon, lat]),
+            zoom: 15,
+            duration: 600,
+          });
+          const feat = vectorSource.getFeatures()
+            .find(f => f.get('code') === this.dataset.code);
+          if (feat) {
+            setTimeout(() => {
+              const pixel = carteOl.getPixelFromCoordinate(
+                ol.proj.fromLonLat([lon, lat])
+              );
+              afficherPopup(feat, pixel);
+            }, 650);
+          }
+        }
+      });
+    });
+  }
+
+  function surlignerItem(code) {
+    document.querySelectorAll('.item-carte').forEach(el => {
+      el.classList.toggle('actif', el.dataset.code === code);
+    });
+  }
+
+  // ── Événements ────────────────────────────────────────────
+  document.addEventListener('DOMContentLoaded', function () {
+    initCarte();
+    chargerMateriels();
+
+    document.getElementById('sideSearch').addEventListener('input', function () {
+      recherche = this.value.toLowerCase();
+      afficherListe();
+      afficherMarqueurs();
+    });
+
+    document.querySelectorAll('.btn-filtre').forEach(btn => {
+      btn.addEventListener('click', function () {
+        document.querySelectorAll('.btn-filtre').forEach(b => b.classList.remove('active'));
+        this.classList.add('active');
+        filtre = this.dataset.statut;
+        afficherListe();
+        afficherMarqueurs();
+      });
+    });
+
+    document.getElementById('btnCentrer').addEventListener('click', function () {
+      fermerPopup();
+      const features = vectorSource.getFeatures();
+      if (features.length > 0) {
+        carteOl.getView().fit(vectorSource.getExtent(), {
+          padding: [80, 80, 80, 80],
+          maxZoom: 14,
+          duration: 700,
+        });
+      } else {
+        carteOl.getView().animate({
+          center: ol.proj.fromLonLat([-72.5, 47.5]),
+          zoom: 8,
+          duration: 700,
+        });
+      }
+    });
+  });
+
+})();
+</script>
+{% endblock %}

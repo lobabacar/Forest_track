@@ -1,3 +1,5 @@
+import os
+
 from flask import Flask, render_template, request, redirect, url_for, jsonify, flash
 from flask_sqlalchemy import SQLAlchemy
 from flask_login import (LoginManager, UserMixin, login_user, logout_user,
@@ -5,12 +7,16 @@ from flask_login import (LoginManager, UserMixin, login_user, logout_user,
 from werkzeug.security import generate_password_hash, check_password_hash
 from datetime import datetime
 from functools import wraps
+from dotenv import load_dotenv
 import qrcode, io, base64
 
+load_dotenv()
+
 app = Flask(__name__)
-app.config['SECRET_KEY'] = 'forestier-secret-2024-change-en-prod'
-app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///forestier.db'
+app.config['SECRET_KEY'] = os.getenv('SECRET_KEY', 'dev-fallback-key-insecure')
+app.config['SQLALCHEMY_DATABASE_URI'] = os.getenv('DATABASE_URL', 'sqlite:///forestier.db')
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
+
 
 db = SQLAlchemy(app)
 login_manager = LoginManager(app)
@@ -68,6 +74,9 @@ class Materiel(db.Model):
     cree_par     = db.relationship('Utilisateur', foreign_keys=[cree_par_id])
     emprunts     = db.relationship('Emprunt', backref='materiel', lazy=True,
                                    order_by='Emprunt.date_emprunt.desc()')
+    latitude   = db.Column(db.Float, nullable=True)
+    longitude  = db.Column(db.Float, nullable=True)
+    dernier_scan = db.Column(db.DateTime, nullable=True)
 
 class Emprunt(db.Model):
     id                 = db.Column(db.Integer, primary_key=True)
@@ -81,6 +90,8 @@ class Emprunt(db.Model):
     notes              = db.Column(db.Text)
     actif              = db.Column(db.Boolean, default=True)
     emprunteur         = db.relationship('Utilisateur', foreign_keys=[utilisateur_id])
+    latitude_scan  = db.Column(db.Float, nullable=True)
+    longitude_scan = db.Column(db.Float, nullable=True)
 
 class Maintenance(db.Model):
     id           = db.Column(db.Integer, primary_key=True)
@@ -292,6 +303,28 @@ def fiche_materiel(code):
                            emprunt_actif=emprunt_actif,
                            maintenance_active=maintenance_active)
 
+# @app.route('/materiel/<code>/emprunter', methods=['POST'])
+# @permission_requise('emprunter')
+# def emprunter(code):
+#     m = Materiel.query.filter_by(code=code.upper()).first_or_404()
+#     if m.statut != 'disponible':
+#         flash("Ce matériel n'est pas disponible.", 'warning')
+#         return redirect(url_for('fiche_materiel', code=code))
+#     e = Emprunt(
+#         materiel_id        = m.id,
+#         utilisateur_id     = current_user.id,
+#         nom_emprunteur     = current_user.nom,
+#         chantier           = request.form.get('chantier', ''),
+#         notes              = request.form.get('notes', ''),
+#         date_retour_prevue = datetime.strptime(request.form['date_retour_prevue'], '%Y-%m-%d').date()
+#                              if request.form.get('date_retour_prevue') else None
+#     )
+#     m.statut      = 'utilisation'
+#     m.emplacement = request.form.get('chantier', m.emplacement)
+#     db.session.add(e)
+#     db.session.commit()
+#     flash(f'Emprunt enregistré pour {e.nom_emprunteur}.', 'success')
+#     return redirect(url_for('fiche_materiel', code=code))
 @app.route('/materiel/<code>/emprunter', methods=['POST'])
 @permission_requise('emprunter')
 def emprunter(code):
@@ -299,17 +332,28 @@ def emprunter(code):
     if m.statut != 'disponible':
         flash("Ce matériel n'est pas disponible.", 'warning')
         return redirect(url_for('fiche_materiel', code=code))
+    
+    # Récupérer les coordonnées GPS si fournies
+    lat = request.form.get('latitude')
+    lon = request.form.get('longitude')
+    
     e = Emprunt(
         materiel_id        = m.id,
         utilisateur_id     = current_user.id,
         nom_emprunteur     = current_user.nom,
         chantier           = request.form.get('chantier', ''),
         notes              = request.form.get('notes', ''),
+        latitude_scan      = float(lat) if lat else None,
+        longitude_scan     = float(lon) if lon else None,
         date_retour_prevue = datetime.strptime(request.form['date_retour_prevue'], '%Y-%m-%d').date()
                              if request.form.get('date_retour_prevue') else None
     )
     m.statut      = 'utilisation'
     m.emplacement = request.form.get('chantier', m.emplacement)
+    if lat and lon:
+        m.latitude    = float(lat)
+        m.longitude   = float(lon)
+        m.dernier_scan = datetime.utcnow()
     db.session.add(e)
     db.session.commit()
     flash(f'Emprunt enregistré pour {e.nom_emprunteur}.', 'success')
@@ -384,6 +428,50 @@ def api_materiels():
                      'categorie':m.categorie,'statut':m.statut,
                      'emplacement':m.emplacement}
                     for m in Materiel.query.all()])
+# ─── visualisation sur la carte ───────────────────────────────────────
+
+@app.route('/carte')
+@login_required
+def carte():
+    return render_template('carte.html')
+
+@app.route('/api/carte/materiels')
+@login_required
+def api_carte_materiels():
+    """Retourne les matériels avec coordonnées pour OpenLayers."""
+    materiels = Materiel.query.all()
+    data = []
+    for m in materiels:
+        emprunt_actif = Emprunt.query.filter_by(materiel_id=m.id, actif=True).first()
+        data.append({
+            'id':           m.id,
+            'code':         m.code,
+            'nom':          m.nom,
+            'categorie':    m.categorie,
+            'statut':       m.statut,
+            'emplacement':  m.emplacement,
+            'latitude':     m.latitude,
+            'longitude':    m.longitude,
+            'dernier_scan': m.dernier_scan.strftime('%d/%m/%Y %H:%M') if m.dernier_scan else None,
+            'emprunteur':   emprunt_actif.nom_emprunteur if emprunt_actif else None,
+            'chantier':     emprunt_actif.chantier if emprunt_actif else None,
+            'url_fiche':    url_for('fiche_materiel', code=m.code),
+        })
+    return jsonify(data)
+
+@app.route('/api/materiel/<code>/localisation', methods=['POST'])
+@login_required
+def maj_localisation(code):
+    """Met à jour les coordonnées GPS au moment du scan."""
+    m = Materiel.query.filter_by(code=code.upper()).first_or_404()
+    data = request.get_json()
+    if data and data.get('latitude') and data.get('longitude'):
+        m.latitude    = data['latitude']
+        m.longitude   = data['longitude']
+        m.dernier_scan = datetime.utcnow()
+        db.session.commit()
+        return jsonify({'ok': True})
+    return jsonify({'ok': False}), 400
 
 # ─── INIT DÉMO ───────────────────────────────────────────────
 def init_demo():
@@ -399,25 +487,59 @@ def init_demo():
     op2.set_password('oper123')
     db.session.add_all([admin, gerant, op1, op2])
     db.session.flush()
+    # demo = [
+    #     Materiel(code='TRON-001', nom='Tronçonneuse Stihl MS 500i', categorie='Abattage',
+    #              numero_serie='SHL-2024-001', cree_par_id=admin.id,
+    #              description='Tronçonneuse professionnelle 79cc, guide 63cm'),
+    #     Materiel(code='DBSC-002', nom='Débusqueuse CAT 525D', categorie='Transport',
+    #              numero_serie='CAT-2022-044', emplacement='Chantier Nord',
+    #              statut='utilisation', cree_par_id=admin.id,
+    #              description='Débusqueuse à câble 140kW'),
+    #     Materiel(code='ABAT-003', nom='Abatteuse Ponsse Ergo', categorie='Abattage',
+    #              numero_serie='PON-2023-017', emplacement='Atelier',
+    #              statut='maintenance', cree_par_id=admin.id,
+    #              description='Abatteuse 8 roues, tête H7'),
+    #     Materiel(code='TRON-004', nom='Tronçonneuse Husqvarna 572XP', categorie='Abattage',
+    #              numero_serie='HSQ-2023-089', cree_par_id=gerant.id,
+    #              description='70.6cc, guide 50cm, frein de chaîne'),
+    #     Materiel(code='MOTO-005', nom='Moto-manuel Vermeer SC852', categorie='Broyage',
+    #              numero_serie='VRM-2021-033', emplacement='Dépôt secondaire',
+    #              cree_par_id=gerant.id, description='Broyeur de souches automoteur 99cv'),
+    # ]
     demo = [
-        Materiel(code='TRON-001', nom='Tronçonneuse Stihl MS 500i', categorie='Abattage',
-                 numero_serie='SHL-2024-001', cree_par_id=admin.id,
-                 description='Tronçonneuse professionnelle 79cc, guide 63cm'),
-        Materiel(code='DBSC-002', nom='Débusqueuse CAT 525D', categorie='Transport',
-                 numero_serie='CAT-2022-044', emplacement='Chantier Nord',
-                 statut='utilisation', cree_par_id=admin.id,
-                 description='Débusqueuse à câble 140kW'),
-        Materiel(code='ABAT-003', nom='Abatteuse Ponsse Ergo', categorie='Abattage',
-                 numero_serie='PON-2023-017', emplacement='Atelier',
-                 statut='maintenance', cree_par_id=admin.id,
-                 description='Abatteuse 8 roues, tête H7'),
-        Materiel(code='TRON-004', nom='Tronçonneuse Husqvarna 572XP', categorie='Abattage',
-                 numero_serie='HSQ-2023-089', cree_par_id=gerant.id,
-                 description='70.6cc, guide 50cm, frein de chaîne'),
-        Materiel(code='MOTO-005', nom='Moto-manuel Vermeer SC852', categorie='Broyage',
-                 numero_serie='VRM-2021-033', emplacement='Dépôt secondaire',
-                 cree_par_id=gerant.id, description='Broyeur de souches automoteur 99cv'),
-    ]
+    Materiel(code='TRON-001', nom='Tronçonneuse Stihl MS 500i', categorie='Abattage',
+             numero_serie='SHL-2024-001', cree_par_id=admin.id,
+             description='Tronçonneuse professionnelle 79cc, guide 63cm',
+             latitude=47.3215, longitude=-71.4782,           # ← Dépôt principal
+             dernier_scan=datetime.utcnow()),
+
+    Materiel(code='DBSC-002', nom='Débusqueuse CAT 525D', categorie='Transport',
+             numero_serie='CAT-2022-044', emplacement='Chantier Nord',
+             statut='utilisation', cree_par_id=admin.id,
+             description='Débusqueuse à câble 140kW',
+             latitude=47.5840, longitude=-71.2103,           # ← Chantier Nord
+             dernier_scan=datetime.utcnow()),
+
+    Materiel(code='ABAT-003', nom='Abatteuse Ponsse Ergo', categorie='Abattage',
+             numero_serie='PON-2023-017', emplacement='Atelier',
+             statut='maintenance', cree_par_id=admin.id,
+             description='Abatteuse 8 roues, tête H7',
+             latitude=47.3350, longitude=-71.5100,           # ← Atelier
+             dernier_scan=datetime.utcnow()),
+
+    Materiel(code='TRON-004', nom='Tronçonneuse Husqvarna 572XP', categorie='Abattage',
+             numero_serie='HSQ-2023-089', cree_par_id=gerant.id,
+             description='70.6cc, guide 50cm, frein de chaîne',
+             latitude=47.3180, longitude=-71.4850,           # ← Dépôt principal
+             dernier_scan=datetime.utcnow()),
+
+    Materiel(code='MOTO-005', nom='Moto-manuel Vermeer SC852', categorie='Broyage',
+             numero_serie='VRM-2021-033', emplacement='Dépôt secondaire',
+             cree_par_id=gerant.id,
+             description='Broyeur de souches automoteur 99cv',
+             latitude=47.2990, longitude=-71.3920,           # ← Dépôt secondaire
+             dernier_scan=datetime.utcnow()),
+]
     db.session.add_all(demo)
     db.session.flush()
     db.session.add(Emprunt(materiel_id=demo[1].id, utilisateur_id=op1.id,
