@@ -9,6 +9,20 @@ from datetime import datetime
 from functools import wraps
 from dotenv import load_dotenv
 import qrcode, io, base64
+# ─── UTILITAIRE RETARDS ──────────────────────────────────────
+def get_emprunts_en_retard():
+    """Retourne tous les emprunts actifs dont la date de retour prévue est dépassée."""
+    aujourd_hui = datetime.utcnow().date()
+    return Emprunt.query.filter(
+        Emprunt.actif == True,
+        Emprunt.date_retour_prevue != None,
+        Emprunt.date_retour_prevue < aujourd_hui
+    ).all()
+
+def nb_retards():
+    """Nombre d'emprunts en retard — injecté dans tous les templates."""
+    return len(get_emprunts_en_retard())
+
 
 load_dotenv()
 
@@ -16,7 +30,11 @@ app = Flask(__name__)
 app.config['SECRET_KEY'] = os.getenv('SECRET_KEY', 'dev-fallback-key-insecure')
 app.config['SQLALCHEMY_DATABASE_URI'] = os.getenv('DATABASE_URL', 'sqlite:///forestier.db')
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
-
+@app.context_processor
+def inject_retards():
+    if current_user.is_authenticated:
+        return {'nb_retards': nb_retards()}
+    return {'nb_retards': 0}
 
 db = SQLAlchemy(app)
 login_manager = LoginManager(app)
@@ -301,7 +319,8 @@ def fiche_materiel(code):
     maintenance_active = Maintenance.query.filter_by(materiel_id=m.id, actif=True).first()
     return render_template('fiche.html', m=m, qr_b64=qr_b64,
                            emprunt_actif=emprunt_actif,
-                           maintenance_active=maintenance_active)
+                           maintenance_active=maintenance_active,
+                           aujourd_hui=datetime.utcnow().date())
 
 # @app.route('/materiel/<code>/emprunter', methods=['POST'])
 # @permission_requise('emprunter')
@@ -472,6 +491,35 @@ def maj_localisation(code):
         db.session.commit()
         return jsonify({'ok': True})
     return jsonify({'ok': False}), 400
+# ─── ALERTES RETARDS ─────────────────────────────────────────
+@app.route('/alertes')
+@login_required
+def alertes():
+    emprunts_retard = get_emprunts_en_retard()
+    aujourd_hui = datetime.utcnow().date()
+    # Calcul du nombre de jours de retard pour chaque emprunt
+    retards = []
+    for e in emprunts_retard:
+        jours = (aujourd_hui - e.date_retour_prevue).days
+        retards.append({'emprunt': e, 'jours': jours})
+    # Trier du plus ancien au plus récent
+    retards.sort(key=lambda x: x['jours'], reverse=True)
+    return render_template('alertes.html', retards=retards, aujourd_hui=aujourd_hui)
+
+@app.route('/api/retards')
+@login_required
+def api_retards():
+    aujourd_hui = datetime.utcnow().date()
+    emprunts = get_emprunts_en_retard()
+    return jsonify([{
+        'materiel_code': e.materiel.code,
+        'materiel_nom':  e.materiel.nom,
+        'emprunteur':    e.nom_emprunteur,
+        'chantier':      e.chantier,
+        'date_prevue':   e.date_retour_prevue.strftime('%d/%m/%Y'),
+        'jours_retard':  (aujourd_hui - e.date_retour_prevue).days,
+        'url_fiche':     url_for('fiche_materiel', code=e.materiel.code),
+    } for e in emprunts])
 
 # ─── INIT DÉMO ───────────────────────────────────────────────
 def init_demo():

@@ -1,0 +1,148 @@
+{% extends "base.html" %}
+{% block title %}Alertes de retard — ForestTrack{% endblock %}
+
+{% block content %}
+<div class="d-flex align-items-center justify-content-between mb-4 flex-wrap gap-2">
+  <div>
+    <h1 class="h3 fw-bold mb-0">
+      <i class="bi bi-bell me-2 text-danger"></i>Alertes de retard
+    </h1>
+    <p class="text-muted small mb-0">Matériels non retournés à la date prévue</p>
+  </div>
+  <a href="{{ url_for('index') }}" class="btn btn-sm btn-outline-secondary">
+    <i class="bi bi-arrow-left me-1"></i>Retour
+  </a>
+</div>
+
+{% if retards %}
+
+<!-- Résumé -->
+<div class="row g-3 mb-4">
+  <div class="col-sm-4">
+    <div class="stat-card stat-util">
+      <div class="stat-icon"><i class="bi bi-exclamation-triangle-fill"></i></div>
+      <div class="stat-value">{{ retards | length }}</div>
+      <div class="stat-label">Retards actifs</div>
+    </div>
+  </div>
+  <div class="col-sm-4">
+    <div class="stat-card stat-maint">
+      <div class="stat-icon"><i class="bi bi-clock-history"></i></div>
+      <div class="stat-value">{{ retards[0].jours }}</div>
+      <div class="stat-label">Jours max de retard</div>
+    </div>
+  </div>
+  <div class="col-sm-4">
+    <div class="stat-card stat-total">
+      <div class="stat-icon"><i class="bi bi-people"></i></div>
+      <div class="stat-value">
+        {{ retards | map(attribute='emprunt') | map(attribute='nom_emprunteur') | unique | list | length }}
+      </div>
+      <div class="stat-label">Emprunteurs concernés</div>
+    </div>
+  </div>
+</div>
+
+<!-- Liste des retards -->
+<div class="card shadow-sm border-0">
+  <div class="card-header bg-transparent border-0 pt-3 pb-0">
+    <h5 class="fw-semibold mb-0">
+      <i class="bi bi-list-ul me-2 text-danger"></i>Détail des retards
+    </h5>
+  </div>
+  <div class="card-body p-0">
+    <div class="table-responsive">
+      <table class="table table-hover align-middle mb-0">
+        <thead class="table-forest-header">
+          <tr>
+            <th class="ps-3">Matériel</th>
+            <th>Emprunteur</th>
+            <th>Chantier</th>
+            <th>Date prévue</th>
+            <th>Retard</th>
+            <th class="text-end pe-3">Action</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for r in retards %}
+          {% set e = r.emprunt %}
+          {% set jours = r.jours %}
+          <tr>
+            <td class="ps-3">
+              <div class="fw-semibold">{{ e.materiel.nom }}</div>
+              <span class="badge bg-secondary font-monospace" style="font-size:10px">
+                {{ e.materiel.code }}
+              </span>
+            </td>
+            <td>
+              <div class="d-flex align-items-center gap-2">
+                <div style="width:30px;height:30px;border-radius:50%;background:#e8f5ee;
+                            color:#1b3a2f;font-weight:700;font-size:12px;
+                            display:flex;align-items:center;justify-content:center;flex-shrink:0">
+                  {{ e.nom_emprunteur[0].upper() }}
+                </div>
+                <span class="fw-semibold">{{ e.nom_emprunteur }}</span>
+              </div>
+            </td>
+            <td class="text-muted small">{{ e.chantier or '—' }}</td>
+            <td class="small">
+              <span class="text-danger">
+                <i class="bi bi-calendar-x me-1"></i>
+                {{ e.date_retour_prevue.strftime('%d/%m/%Y') }}
+              </span>
+            </td>
+            <td>
+              {% if jours >= 7 %}
+                <span class="badge bg-danger fs-6 px-2">
+                  <i class="bi bi-fire me-1"></i>{{ jours }}j
+                </span>
+              {% elif jours >= 3 %}
+                <span class="badge bg-warning text-dark fs-6 px-2">
+                  <i class="bi bi-exclamation-triangle me-1"></i>{{ jours }}j
+                </span>
+              {% else %}
+                <span class="badge bg-secondary fs-6 px-2">
+                  {{ jours }}j
+                </span>
+              {% endif %}
+            </td>
+            <td class="text-end pe-3">
+              <a href="{{ url_for('fiche_materiel', code=e.materiel.code) }}"
+                 class="btn btn-sm btn-outline-forest me-1">
+                <i class="bi bi-eye me-1"></i>Fiche
+              </a>
+              {% if current_user.peut('retourner') %}
+              <form method="POST"
+                    action="{{ url_for('retourner', code=e.materiel.code) }}"
+                    class="d-inline"
+                    onsubmit="return confirm('Confirmer le retour de {{ e.materiel.nom }} ?')">
+                <button type="submit" class="btn btn-sm btn-success">
+                  <i class="bi bi-check-circle me-1"></i>Retour
+                </button>
+              </form>
+              {% endif %}
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+{% else %}
+
+<!-- Aucun retard -->
+<div class="card shadow-sm border-0 text-center py-5">
+  <div class="card-body">
+    <i class="bi bi-check-circle-fill text-success" style="font-size:3rem"></i>
+    <h4 class="fw-bold mt-3 mb-1">Aucun retard !</h4>
+    <p class="text-muted">Tous les matériels empruntés ont été retournés dans les délais.</p>
+    <a href="{{ url_for('index') }}" class="btn btn-forest mt-2">
+      <i class="bi bi-speedometer2 me-2"></i>Retour au tableau de bord
+    </a>
+  </div>
+</div>
+
+{% endif %}
+{% endblock %}

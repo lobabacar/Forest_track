@@ -231,6 +231,16 @@
                   {% if e.actif %}
                   <span class="badge bg-danger-subtle text-danger">En cours</span>
                   {% else %}
+                  {% if emprunt_actif and emprunt_actif.date_retour_prevue %}
+                    {% set jours_retard = (aujourd_hui - emprunt_actif.date_retour_prevue).days if aujourd_hui is defined else 0 %}
+                    {% if emprunt_actif.date_retour_prevue < aujourd_hui %}
+                    <div class="alert alert-danger py-2 mt-2 mb-0" style="font-size:13px">
+                        <i class="bi bi-exclamation-triangle-fill me-2"></i>
+                        <strong>Retard de {{ (aujourd_hui - emprunt_actif.date_retour_prevue).days }} jour(s)</strong>
+                        — retour prévu le {{ emprunt_actif.date_retour_prevue.strftime('%d/%m/%Y') }}
+                    </div>
+                    {% endif %}
+                    {% endif %}
                   <span class="badge bg-success-subtle text-success">Retourné</span>
                   {% endif %}
                 </td>
