@@ -96,6 +96,7 @@ class Materiel(db.Model):
     emplacement  = db.Column(db.String(100), default='Dépôt principal')
     statut       = db.Column(db.String(20), default='disponible')
     date_achat   = db.Column(db.Date)
+    prix_achat    = db.Column(db.Float)
     created_at   = db.Column(db.DateTime, default=datetime.utcnow)
     cree_par_id  = db.Column(db.Integer, db.ForeignKey('utilisateur.id'))
     cree_par     = db.relationship('Utilisateur', foreign_keys=[cree_par_id])
