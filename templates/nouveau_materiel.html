@@ -28,13 +28,19 @@
               <label class="form-label fw-semibold">Catégorie *</label>
               <select name="categorie" class="form-select" required>
                 <option value="">Sélectionner…</option>
-                <option value="Abattage">Abattage</option>
-                <option value="Transport">Transport & Débardage</option>
-                <option value="Broyage">Broyage & Déchiquetage</option>
-                <option value="Plantation">Plantation & Reboisement</option>
-                <option value="Élagage">Élagage & Entretien</option>
-                <option value="Protection">Protection & Sécurité</option>
-                <option value="Mesure">Mesure & Topographie</option>
+                <option value="Abattage">Informatique</option>
+                <option value="Transport">Sante/Securite</option>
+                <option value="Broyage">GPS</option>
+                <option value="Plantation">Item coorporatif</option>
+                <option value="Élagage">Milieux humides </option>
+                <option value="Protection">Licence logiciel</option>
+                <option value="Mesure">Papetrie</option>
+                <option value="Mesure">Jardin</option>
+                <option value="Mesure">Plantation</option>
+                <option value="Mesure">Foresterie</option>
+                <option value="Mesure">Repere terrain</option>
+                <option value="Mesure">Ecahntillon d'eau </option>
+                <option value="Mesure">Livre/guide scientifique</option>
                 <option value="Autre">Autre</option>
               </select>
             </div>
@@ -42,13 +48,17 @@
               <label class="form-label fw-semibold">Numéro de série</label>
               <input type="text" name="numero_serie" class="form-control" placeholder="Ex: SHL-2024-001">
             </div>
-            <div class="col-sm-6">
+            <div class="col-sm-4">
               <label class="form-label fw-semibold">Emplacement initial</label>
-              <input type="text" name="emplacement" class="form-control" value="Dépôt principal">
+              <input type="text" name="emplacement" class="form-control" placeholder="Ex: Sherbrooke">
             </div>
-            <div class="col-sm-6">
+            <div class="col-sm-4">
               <label class="form-label fw-semibold">Date d'achat</label>
               <input type="date" name="date_achat" class="form-control">
+            </div>
+            <div class="col-sm-4">
+              <label class="form-label fw-semibold">Prix d'achat</label>
+              <input type="number" name="prix_achat" class="form-control" placeholder="Ex: 1500.00" step="0.01">
             </div>
             <div class="col-12">
               <label class="form-label fw-semibold">Description</label>

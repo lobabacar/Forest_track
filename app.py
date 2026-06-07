@@ -535,76 +535,17 @@ def api_retards():
 def init_demo():
     if Utilisateur.query.count() > 0:
         return
-    admin  = Utilisateur(nom='Babacar Toure lo', email='btlo@foresttrack.ca', role=ROLE_ADMIN, actif=True)
-    gerant = Utilisateur(nom='Marietou Mbengue',   email='mmbengue@foresttrack.ca', role=ROLE_GERANT, actif=True)
-    op1    = Utilisateur(nom='Omar Thiam',  email='othiam@foresttrack.ca', role=ROLE_OPERATEUR, actif=True)
-    op2    = Utilisateur(nom='Amina Mbengue',     email='ambengue@foresttrack.ca',   role=ROLE_OPERATEUR, actif=True)
-    admin.set_password('admin123')
-    gerant.set_password('gerant123')
+    admin   = Utilisateur(nom='Babacar Toure lo',      email='babacar.toure.lo@coop-ecologie.com',       role=ROLE_ADMIN,     actif=True)
+    gerant1 = Utilisateur(nom='Audrey Lachance',        email='audrey.lachance@coop-ecologie.com',         role=ROLE_GERANT,    actif=True)
+    gerant2 = Utilisateur(nom='Stephanie Langevin',     email='stephanie.langevin@coop-ecologie.com',      role=ROLE_GERANT,    actif=True)
+    op1     = Utilisateur(nom='Zoe St-Onge',            email='zoe.st-onge@coop-ecologie.com',             role=ROLE_OPERATEUR, actif=True)
+
+    admin.set_password('Ndeyendoura4@')
+    gerant1.set_password('gerant123')
+    gerant2.set_password('gerant123')
     op1.set_password('oper123')
-    op2.set_password('oper123')
-    db.session.add_all([admin, gerant, op1, op2])
-    db.session.flush()
-    # demo = [
-    #     Materiel(code='TRON-001', nom='Tronçonneuse Stihl MS 500i', categorie='Abattage',
-    #              numero_serie='SHL-2024-001', cree_par_id=admin.id,
-    #              description='Tronçonneuse professionnelle 79cc, guide 63cm'),
-    #     Materiel(code='DBSC-002', nom='Débusqueuse CAT 525D', categorie='Transport',
-    #              numero_serie='CAT-2022-044', emplacement='Chantier Nord',
-    #              statut='utilisation', cree_par_id=admin.id,
-    #              description='Débusqueuse à câble 140kW'),
-    #     Materiel(code='ABAT-003', nom='Abatteuse Ponsse Ergo', categorie='Abattage',
-    #              numero_serie='PON-2023-017', emplacement='Atelier',
-    #              statut='maintenance', cree_par_id=admin.id,
-    #              description='Abatteuse 8 roues, tête H7'),
-    #     Materiel(code='TRON-004', nom='Tronçonneuse Husqvarna 572XP', categorie='Abattage',
-    #              numero_serie='HSQ-2023-089', cree_par_id=gerant.id,
-    #              description='70.6cc, guide 50cm, frein de chaîne'),
-    #     Materiel(code='MOTO-005', nom='Moto-manuel Vermeer SC852', categorie='Broyage',
-    #              numero_serie='VRM-2021-033', emplacement='Dépôt secondaire',
-    #              cree_par_id=gerant.id, description='Broyeur de souches automoteur 99cv'),
-    # ]
-    demo = [
-    Materiel(code='TRON-001', nom='Tronçonneuse Stihl MS 500i', categorie='Abattage',
-             numero_serie='SHL-2024-001', cree_par_id=admin.id,
-             description='Tronçonneuse professionnelle 79cc, guide 63cm',
-             latitude=47.3215, longitude=-71.4782,           # ← Dépôt principal
-             dernier_scan=datetime.utcnow()),
 
-    Materiel(code='DBSC-002', nom='Débusqueuse CAT 525D', categorie='Transport',
-             numero_serie='CAT-2022-044', emplacement='Chantier Nord',
-             statut='utilisation', cree_par_id=admin.id,
-             description='Débusqueuse à câble 140kW',
-             latitude=47.5840, longitude=-71.2103,           # ← Chantier Nord
-             dernier_scan=datetime.utcnow()),
-
-    Materiel(code='ABAT-003', nom='Abatteuse Ponsse Ergo', categorie='Abattage',
-             numero_serie='PON-2023-017', emplacement='Atelier',
-             statut='maintenance', cree_par_id=admin.id,
-             description='Abatteuse 8 roues, tête H7',
-             latitude=47.3350, longitude=-71.5100,           # ← Atelier
-             dernier_scan=datetime.utcnow()),
-
-    Materiel(code='TRON-004', nom='Tronçonneuse Husqvarna 572XP', categorie='Abattage',
-             numero_serie='HSQ-2023-089', cree_par_id=gerant.id,
-             description='70.6cc, guide 50cm, frein de chaîne',
-             latitude=47.3180, longitude=-71.4850,           # ← Dépôt principal
-             dernier_scan=datetime.utcnow()),
-
-    Materiel(code='MOTO-005', nom='Moto-manuel Vermeer SC852', categorie='Broyage',
-             numero_serie='VRM-2021-033', emplacement='Dépôt secondaire',
-             cree_par_id=gerant.id,
-             description='Broyeur de souches automoteur 99cv',
-             latitude=47.2990, longitude=-71.3920,           # ← Dépôt secondaire
-             dernier_scan=datetime.utcnow()),
-]
-    db.session.add_all(demo)
-    db.session.flush()
-    db.session.add(Emprunt(materiel_id=demo[1].id, utilisateur_id=op1.id,
-                           nom_emprunteur=op1.nom, chantier='Chantier Nord', actif=True))
-    db.session.add(Maintenance(materiel_id=demo[2].id, cree_par_id=gerant.id,
-                               description='Révision 500h - changement filtres et courroies',
-                               technicien='Marc Leblanc', actif=True))
+    db.session.add_all([admin, gerant1, gerant2, op1])
     db.session.commit()
 
 with app.app_context():
@@ -613,6 +554,89 @@ with app.app_context():
 
 if __name__ == '__main__':
     app.run(debug=True)
+# def init_demo():
+#     if Utilisateur.query.count() > 0:
+#         return
+#     admin  = Utilisateur(nom='Babacar Toure lo', email='babacar.toure.lo@coop-ecologie.com', role=ROLE_ADMIN, actif=True)
+#     gerant1 = Utilisateur(nom='Audrey Lachance',   email='audrey.lachance@coop-ecologie.com', role=ROLE_GERANT, actif=True)
+#     gerant2 = Utilisateur(nom='Stephanie Langevin',   email='stephanie.langevin@coop-ecologie.com', role=ROLE_GERANT, actif=True)
+#     op1 = Utilisateur(nom=' Zoe St-Onge',  email='zoe.st-onge@coop-ecologie.com', role=ROLE_OPERATEUR, actif=True)
+    
+#     admin.set_password('admin123')
+#     gerant1.set_password('gerant123')
+#     gerant2.set_password('gerant123')
+#     op1.set_password('oper123')
+   
+#     db.session.add_all([admin, gerant1, gerant2, op1])
+#     db.session.flush()
+#     # demo = [
+#     #     Materiel(code='TRON-001', nom='Tronçonneuse Stihl MS 500i', categorie='Abattage',
+#     #              numero_serie='SHL-2024-001', cree_par_id=admin.id,
+#     #              description='Tronçonneuse professionnelle 79cc, guide 63cm'),
+#     #     Materiel(code='DBSC-002', nom='Débusqueuse CAT 525D', categorie='Transport',
+#     #              numero_serie='CAT-2022-044', emplacement='Chantier Nord',
+#     #              statut='utilisation', cree_par_id=admin.id,
+#     #              description='Débusqueuse à câble 140kW'),
+#     #     Materiel(code='ABAT-003', nom='Abatteuse Ponsse Ergo', categorie='Abattage',
+#     #              numero_serie='PON-2023-017', emplacement='Atelier',
+#     #              statut='maintenance', cree_par_id=admin.id,
+#     #              description='Abatteuse 8 roues, tête H7'),
+#     #     Materiel(code='TRON-004', nom='Tronçonneuse Husqvarna 572XP', categorie='Abattage',
+#     #              numero_serie='HSQ-2023-089', cree_par_id=gerant.id,
+#     #              description='70.6cc, guide 50cm, frein de chaîne'),
+#     #     Materiel(code='MOTO-005', nom='Moto-manuel Vermeer SC852', categorie='Broyage',
+#     #              numero_serie='VRM-2021-033', emplacement='Dépôt secondaire',
+#     #              cree_par_id=gerant.id, description='Broyeur de souches automoteur 99cv'),
+#     # ]
+#     demo = [
+#     Materiel(code='TRON-001', nom='Tronçonneuse Stihl MS 500i', categorie='Abattage',
+#              numero_serie='SHL-2024-001', cree_par_id=admin.id,
+#              description='Tronçonneuse professionnelle 79cc, guide 63cm',
+#              latitude=47.3215, longitude=-71.4782,           # ← Dépôt principal
+#              dernier_scan=datetime.utcnow()),
+
+#     Materiel(code='DBSC-002', nom='Débusqueuse CAT 525D', categorie='Transport',
+#              numero_serie='CAT-2022-044', emplacement='Chantier Nord',
+#              statut='utilisation', cree_par_id=admin.id,
+#              description='Débusqueuse à câble 140kW',
+#              latitude=47.5840, longitude=-71.2103,           # ← Chantier Nord
+#              dernier_scan=datetime.utcnow()),
+
+#     Materiel(code='ABAT-003', nom='Abatteuse Ponsse Ergo', categorie='Abattage',
+#              numero_serie='PON-2023-017', emplacement='Atelier',
+#              statut='maintenance', cree_par_id=admin.id,
+#              description='Abatteuse 8 roues, tête H7',
+#              latitude=47.3350, longitude=-71.5100,           # ← Atelier
+#              dernier_scan=datetime.utcnow()),
+
+#     Materiel(code='TRON-004', nom='Tronçonneuse Husqvarna 572XP', categorie='Abattage',
+#              numero_serie='HSQ-2023-089', cree_par_id=gerant1.id,
+#              description='70.6cc, guide 50cm, frein de chaîne',
+#              latitude=47.3180, longitude=-71.4850,           # ← Dépôt principal
+#              dernier_scan=datetime.utcnow()),
+
+#     Materiel(code='MOTO-005', nom='Moto-manuel Vermeer SC852', categorie='Broyage',
+#              numero_serie='VRM-2021-033', emplacement='Dépôt secondaire',
+#              cree_par_id=gerant1.id,
+#              description='Broyeur de souches automoteur 99cv',
+#              latitude=47.2990, longitude=-71.3920,           # ← Dépôt secondaire
+#              dernier_scan=datetime.utcnow()),
+# ]
+#     db.session.add_all(demo)
+#     db.session.flush()
+#     db.session.add(Emprunt(materiel_id=demo[1].id, utilisateur_id=op1.id,
+#                            nom_emprunteur=op1.nom, chantier='Chantier Nord', actif=True))
+#     db.session.add(Maintenance(materiel_id=demo[2].id, cree_par_id=gerant1.id,
+#                                description='Révision 500h - changement filtres et courroies',
+#                                technicien='Marc Leblanc', actif=True))
+#     db.session.commit()
+
+# with app.app_context():
+#     db.create_all()
+#     init_demo()
+
+# if __name__ == '__main__':
+#     app.run(debug=True)
 
 
 # ## `requirements.txt`
