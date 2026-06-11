@@ -1,5 +1,5 @@
 import os
-
+from flask import send_from_directory
 from flask import Flask, render_template, request, redirect, url_for, jsonify, flash
 from flask_sqlalchemy import SQLAlchemy
 from flask_login import (LoginManager, UserMixin, login_user, logout_user,
@@ -530,6 +530,16 @@ def api_retards():
         'jours_retard':  (aujourd_hui - e.date_retour_prevue).days,
         'url_fiche':     url_for('fiche_materiel', code=e.materiel.code),
     } for e in emprunts])
+    #ajout des routes pour le PWA
+@app.route('/manifest.json')
+def manifest():
+    return send_from_directory('static', 'manifest.json',
+                               mimetype='application/manifest+json')
+
+@app.route('/sw.js')
+def service_worker():
+    return send_from_directory('static', 'sw.js',
+                               mimetype='application/javascript')
 
 # ─── INIT DÉMO ───────────────────────────────────────────────
 def init_demo():
