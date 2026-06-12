@@ -287,14 +287,55 @@ def admin_supprimer_utilisateur(uid):
 @app.route('/')
 @login_required
 def index():
-    materiels      = Materiel.query.all()
-    total          = len(materiels)
-    disponibles    = sum(1 for m in materiels if m.statut == 'disponible')
-    en_utilisation = sum(1 for m in materiels if m.statut == 'utilisation')
-    en_maintenance = sum(1 for m in materiels if m.statut == 'maintenance')
-    return render_template('index.html', materiels=materiels, total=total,
-                           disponibles=disponibles, en_utilisation=en_utilisation,
-                           en_maintenance=en_maintenance)
+    page           = request.args.get('page', 1, type=int)
+    par_page       = 10  # ← nombre de matériels par page, ajustez selon vos besoins
+    par_page = request.args.get('per_page', 10, type=int)        # ← ajout ligne 1
+    if par_page not in [10, 25, 50, 100]:                        # ← ajout ligne 2
+        par_page = 10                                             # ← ajout ligne 3
+    statut_filtre    = request.args.get('statut', '')
+    categorie_filtre = request.args.get('categorie', '')
+    recherche        = request.args.get('q', '')
+    query = Materiel.query
+
+    if statut_filtre:
+        query = query.filter(Materiel.statut == statut_filtre)
+    if categorie_filtre:
+        query = query.filter(Materiel.categorie == categorie_filtre)
+    if recherche:
+        query = query.filter(
+            db.or_(
+                Materiel.nom.ilike(f'%{recherche}%'),
+                Materiel.code.ilike(f'%{recherche}%')
+            )
+        )
+
+    pagination    = query.order_by(Materiel.created_at.desc()).paginate(
+                        page=page, per_page=par_page, error_out=False)
+    materiels     = pagination.items
+
+    # Stats globales (sur tous les matériels, pas seulement la page courante)
+    tous          = Materiel.query
+    total         = tous.count()
+    disponibles   = tous.filter_by(statut='disponible').count()
+    en_utilisation= tous.filter_by(statut='utilisation').count()
+    en_maintenance= tous.filter_by(statut='maintenance').count()
+
+    # Catégories pour le filtre
+    categories    = db.session.query(Materiel.categorie)\
+                              .distinct().order_by(Materiel.categorie).all()
+    categories    = [c[0] for c in categories]
+
+    return render_template('index.html',
+                           materiels=materiels,
+                           pagination=pagination,
+                           total=total,
+                           disponibles=disponibles,
+                           en_utilisation=en_utilisation,
+                           en_maintenance=en_maintenance,
+                           categories=categories,
+                           statut_filtre=statut_filtre,
+                           categorie_filtre=categorie_filtre,
+                           recherche=recherche)
 
 @app.route('/materiel/nouveau', methods=['GET', 'POST'])
 @permission_requise('ajouter')

@@ -13,6 +13,7 @@
   {% endif %}
 </div>
 
+<!-- Cartes statistiques -->
 <div class="row g-3 mb-4">
   <div class="col-6 col-md-3">
     <div class="stat-card stat-total">
@@ -44,43 +45,55 @@
   </div>
 </div>
 
-<div class="card shadow-sm border-0 mb-3">
-  <div class="card-body py-2">
-    <div class="row g-2 align-items-center">
-      <div class="col-md-5">
-        <div class="input-group">
-          <span class="input-group-text bg-white border-end-0"><i class="bi bi-search text-muted"></i></span>
-          <input type="text" id="searchInput" class="form-control border-start-0" placeholder="Rechercher un matériel…">
+<!-- Barre de recherche & filtres — version serveur -->
+<form method="GET" action="{{ url_for('index') }}" id="formFiltres">
+  <div class="card shadow-sm border-0 mb-3">
+    <div class="card-body py-2">
+      <div class="row g-2 align-items-center">
+        <div class="col-md-5">
+          <div class="input-group">
+            <span class="input-group-text bg-white border-end-0">
+              <i class="bi bi-search text-muted"></i>
+            </span>
+            <input type="text" name="q" class="form-control border-start-0"
+                   placeholder="Rechercher un matériel…"
+                   value="{{ recherche }}"
+                   onchange="this.form.submit()">
+          </div>
         </div>
-      </div>
-      <div class="col-md-3">
-        <select id="filtreStatut" class="form-select">
-          <option value="">Tous les statuts</option>
-          <option value="disponible">✅ Disponible</option>
-          <option value="utilisation">🔴 En utilisation</option>
-          <option value="maintenance">🟡 En maintenance</option>
-        </select>
-      </div>
-      <div class="col-md-3">
-        <select id="filtreCategorie" class="form-select">
-          <option value="">Toutes catégories</option>
-          {% set categories = materiels | map(attribute='categorie') | unique | list %}
-          {% for cat in categories %}
-          <option value="{{ cat }}">{{ cat }}</option>
-          {% endfor %}
-        </select>
-      </div>
-      <div class="col-md-1 text-end">
-        <button class="btn btn-outline-secondary btn-sm" id="resetFiltres"><i class="bi bi-x-lg"></i></button>
+        <div class="col-md-3">
+          <select name="statut" class="form-select" onchange="this.form.submit()">
+            <option value="">Tous les statuts</option>
+            <option value="disponible"  {% if statut_filtre == 'disponible'  %}selected{% endif %}>✅ Disponible</option>
+            <option value="utilisation" {% if statut_filtre == 'utilisation' %}selected{% endif %}>🔴 En utilisation</option>
+            <option value="maintenance" {% if statut_filtre == 'maintenance' %}selected{% endif %}>🟡 En maintenance</option>
+          </select>
+        </div>
+        <div class="col-md-3">
+          <select name="categorie" class="form-select" onchange="this.form.submit()">
+            <option value="">Toutes catégories</option>
+            {% for cat in categories %}
+            <option value="{{ cat }}" {% if categorie_filtre == cat %}selected{% endif %}>
+              {{ cat }}
+            </option>
+            {% endfor %}
+          </select>
+        </div>
+        <div class="col-md-1 text-end">
+          <a href="{{ url_for('index') }}" class="btn btn-outline-secondary btn-sm" title="Réinitialiser">
+            <i class="bi bi-x-lg"></i>
+          </a>
+        </div>
       </div>
     </div>
   </div>
-</div>
+</form>
 
+<!-- Tableau matériels -->
 <div class="card shadow-sm border-0">
   <div class="card-body p-0">
     <div class="table-responsive">
-      <table class="table table-hover align-middle mb-0" id="tableMateriel">
+      <table class="table table-hover align-middle mb-0">
         <thead class="table-forest-header">
           <tr>
             <th class="ps-3">Code</th>
@@ -91,10 +104,9 @@
             <th class="text-end pe-3">Actions</th>
           </tr>
         </thead>
-        <tbody id="tableBody">
+        <tbody>
           {% for m in materiels %}
-          <tr class="materiel-row" data-nom="{{ m.nom|lower }}" data-code="{{ m.code|lower }}"
-              data-statut="{{ m.statut }}" data-categorie="{{ m.categorie }}">
+          <tr>
             <td class="ps-3"><span class="badge bg-secondary font-monospace">{{ m.code }}</span></td>
             <td>
               <div class="fw-semibold">{{ m.nom }}</div>
@@ -122,8 +134,12 @@
           </tr>
           {% else %}
           <tr><td colspan="6" class="text-center text-muted py-5">
-            <i class="bi bi-inbox fs-2 d-block mb-2"></i>Aucun matériel.
+            <i class="bi bi-inbox fs-2 d-block mb-2"></i>Aucun matériel trouvé.
+            {% if not recherche and not statut_filtre and not categorie_filtre %}
             <a href="{{ url_for('nouveau_materiel') }}">Ajouter le premier</a>
+            {% else %}
+            <a href="{{ url_for('index') }}">Réinitialiser les filtres</a>
+            {% endif %}
           </td></tr>
           {% endfor %}
         </tbody>
@@ -131,7 +147,76 @@
     </div>
   </div>
 </div>
-<div id="noResult" class="text-center text-muted py-4 d-none">
-  <i class="bi bi-search fs-3 d-block mb-2"></i>Aucun résultat.
+
+<!-- Pagination -->
+{% if pagination.pages > 1 %}
+<div class="d-flex align-items-center justify-content-between mt-3 flex-wrap gap-2">
+
+  <div class="text-muted small">
+    Affichage de
+    <strong>{{ (pagination.page - 1) * pagination.per_page + 1 }}</strong>
+    à
+    <strong>{{ [pagination.page * pagination.per_page, pagination.total] | min }}</strong>
+    sur <strong>{{ pagination.total }}</strong> matériels
+  </div>
+
+  <nav>
+    <ul class="pagination pagination-sm mb-0">
+      <li class="page-item {% if not pagination.has_prev %}disabled{% endif %}">
+        <a class="page-link" href="{{ url_for('index', page=1,
+           q=recherche, statut=statut_filtre, categorie=categorie_filtre) }}">
+          <i class="bi bi-chevron-double-left"></i>
+        </a>
+      </li>
+      <li class="page-item {% if not pagination.has_prev %}disabled{% endif %}">
+        <a class="page-link" href="{{ url_for('index', page=pagination.prev_num,
+           q=recherche, statut=statut_filtre, categorie=categorie_filtre) }}">
+          <i class="bi bi-chevron-left"></i>
+        </a>
+      </li>
+      {% for p in pagination.iter_pages(left_edge=1, right_edge=1, left_current=2, right_current=2) %}
+        {% if p %}
+          <li class="page-item {% if p == pagination.page %}active{% endif %}">
+            <a class="page-link" href="{{ url_for('index', page=p,
+               q=recherche, statut=statut_filtre, categorie=categorie_filtre) }}">
+              {{ p }}
+            </a>
+          </li>
+        {% else %}
+          <li class="page-item disabled"><span class="page-link">…</span></li>
+        {% endif %}
+      {% endfor %}
+      <li class="page-item {% if not pagination.has_next %}disabled{% endif %}">
+        <a class="page-link" href="{{ url_for('index', page=pagination.next_num,
+           q=recherche, statut=statut_filtre, categorie=categorie_filtre) }}">
+          <i class="bi bi-chevron-right"></i>
+        </a>
+      </li>
+      <li class="page-item {% if not pagination.has_next %}disabled{% endif %}">
+        <a class="page-link" href="{{ url_for('index', page=pagination.pages,
+           q=recherche, statut=statut_filtre, categorie=categorie_filtre) }}">
+          <i class="bi bi-chevron-double-right"></i>
+        </a>
+      </li>
+    </ul>
+  </nav>
+
+  <div class="d-flex align-items-center gap-2">
+    <span class="text-muted small">Par page :</span>
+    <select class="form-select form-select-sm" style="width:70px"
+            onchange="window.location.href='{{ url_for('index', q=recherche, statut=statut_filtre, categorie=categorie_filtre) }}&per_page='+this.value">
+      <option value="10"  {% if pagination.per_page == 10  %}selected{% endif %}>10</option>
+      <option value="25"  {% if pagination.per_page == 25  %}selected{% endif %}>25</option>
+      <option value="50"  {% if pagination.per_page == 50  %}selected{% endif %}>50</option>
+      <option value="100" {% if pagination.per_page == 100 %}selected{% endif %}>100</option>
+    </select>
+  </div>
+
 </div>
+{% else %}
+<div class="text-muted small mt-2">
+  {{ pagination.total }} matériel{% if pagination.total > 1 %}s{% endif %} au total
+</div>
+{% endif %}
+
 {% endblock %}

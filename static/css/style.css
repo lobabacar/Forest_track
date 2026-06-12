@@ -94,3 +94,17 @@
   .stat-value { font-size: 1.5rem; }
   .qr-container { width: 140px; }
 }
+/* ── Pagination ── */
+.pagination .page-link {
+  color: var(--forest-mid);
+  border-color: #dee2e6;
+}
+.pagination .page-item.active .page-link {
+  background-color: var(--forest-mid);
+  border-color:     var(--forest-mid);
+  color: #fff;
+}
+.pagination .page-link:hover {
+  background-color: var(--forest-pale);
+  color: var(--forest-dark);
+}
