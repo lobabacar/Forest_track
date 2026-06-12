@@ -315,6 +315,34 @@ def nouveau_materiel():
                            if request.form.get('date_achat') else None
         )
         db.session.add(m)
+        db.session.flush()
+
+        # Matériel déjà en utilisation
+        if m.statut == 'utilisation':
+            emprunteur = request.form.get('emprunteur_initial', 'Inconnu')
+            chantier   = request.form.get('chantier_initial', m.emplacement)
+            e = Emprunt(
+                materiel_id    = m.id,
+                utilisateur_id = current_user.id,
+                nom_emprunteur = emprunteur,
+                chantier       = chantier,
+                actif          = True
+            )
+            db.session.add(e)
+
+        # Matériel déjà en maintenance
+        elif m.statut == 'maintenance':
+            desc  = request.form.get('maintenance_description', 'Maintenance en cours')
+            tech  = request.form.get('maintenance_technicien', '')
+            maint = Maintenance(
+                materiel_id = m.id,
+                description = desc,
+                technicien  = tech,
+                cree_par_id = current_user.id,
+                actif       = True
+            )
+            db.session.add(maint)
+
         db.session.commit()
         flash(f'Matériel "{m.nom}" ajouté !', 'success')
         return redirect(url_for('fiche_materiel', code=m.code))

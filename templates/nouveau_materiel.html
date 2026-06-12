@@ -25,24 +25,76 @@
               <input type="text" name="nom" class="form-control" required placeholder="Ex: Tronçonneuse Stihl MS 500i">
             </div>
             <div class="col-sm-6">
-              <label class="form-label fw-semibold">Catégorie *</label>
-              <select name="categorie" class="form-select" required>
-                <option value="">Sélectionner…</option>
-                <option value="Informatique">Informatique</option>
-                <option value="Sante/Securite">Sante/Securite</option>
-                <option value="GPS">GPS</option>
-                <option value="Item coorporatif">Item coorporatif</option>
-                <option value="Milieux humides ">Milieux humides </option>
-                <option value="Licence logiciel">Licence logiciel</option>
-                <option value="Papetrie">Papetrie</option>
-                <option value="Jardin">Jardin</option>
-                <option value="Plantation">Plantation</option>
-                <option value="Foresterie">Foresterie</option>
-                <option value="Repere terrain">Repere terrain</option>
-                <option value="Echantillon d'eau ">Echantillon d'eau </option>
-                <option value="Livre/guide scientifique">Livre/guide scientifique</option>
-                <option value="Autre">Autre</option>
-              </select>
+  <label class="form-label fw-semibold">Catégorie *</label>
+  <select name="categorie" class="form-select" required>
+    <option value="" disabled selected>Sélectionner une catégorie…</option>
+    <option value="Informatique">Informatique</option>
+    <option value="Santé/Sécurité">Santé / Sécurité</option>
+    <option value="GPS">GPS</option>
+    <option value="Item corporatif">Item corporatif</option>
+    <option value="Milieux humides">Milieux humides</option>
+    <option value="Licence logiciel">Licence logiciel</option>
+    <option value="Papeterie">Papeterie</option>
+    <option value="Jardin">Jardin</option>
+    <option value="Plantation">Plantation</option>
+    <option value="Foresterie">Foresterie</option>
+    <option value="Repère terrain">Repère terrain</option>
+    <option value="Échantillon d'eau">Échantillon d'eau</option>
+    <option value="Livre/guide scientifique">Livre / guide scientifique</option>
+    <option value="Autre">Autre</option>
+  </select>
+</div>
+
+<div class="col-sm-6">
+  <label class="form-label fw-semibold">Statut initial *</label>
+  <select name="statut" class="form-select" required id="selectStatut">
+    <option value="disponible">✅ Disponible</option>
+    <option value="utilisation">🔴 En utilisation</option>
+    <option value="maintenance">🟡 En maintenance</option>
+  </select>
+</div>
+
+<!-- Bloc En utilisation — apparaît dynamiquement -->
+<div class="col-12" id="blocUtilisation" style="display:none">
+  <div class="alert alert-danger py-3 mb-0">
+    <div class="fw-semibold small mb-2">
+      <i class="bi bi-person-workspace me-1"></i>Précisez qui a ce matériel
+    </div>
+    <div class="row g-2">
+      <div class="col-sm-6">
+        <label class="form-label small fw-semibold">Nom de la personne *</label>
+        <input type="text" name="emprunteur_initial" class="form-control form-control-sm"
+               placeholder="Ex: Anne-Lyse Thouin">
+      </div>
+      <div class="col-sm-6">
+        <label class="form-label small fw-semibold">Chantier / Lieu</label>
+        <input type="text" name="chantier_initial" class="form-control form-control-sm"
+               placeholder="Ex: Bureau Sherbrooke">
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Bloc En maintenance — apparaît dynamiquement -->
+<div class="col-12" id="blocMaintenance" style="display:none">
+  <div class="alert alert-warning py-3 mb-0">
+    <div class="fw-semibold small mb-2">
+      <i class="bi bi-wrench me-1"></i>Précisez les détails de la maintenance
+    </div>
+    <div class="row g-2">
+      <div class="col-sm-6">
+        <label class="form-label small fw-semibold">Description des travaux *</label>
+        <input type="text" name="maintenance_description" class="form-control form-control-sm"
+               placeholder="Ex: Remplacement batterie">
+      </div>
+      <div class="col-sm-6">
+        <label class="form-label small fw-semibold">Technicien</label>
+        <input type="text" name="maintenance_technicien" class="form-control form-control-sm"
+               placeholder="Ex: Marc Leblanc">
+      </div>
+    </div>
+  </div>
+</div>
             </div>
             <div class="col-sm-6">
               <label class="form-label fw-semibold">Numéro de série</label>
@@ -81,6 +133,11 @@
 {% endblock %}
 {% block scripts %}
 <script>
+document.getElementById('selectStatut').addEventListener('change', function() {
+  document.getElementById('blocUtilisation').style.display = this.value === 'utilisation' ? 'block' : 'none';
+  document.getElementById('blocMaintenance').style.display = this.value === 'maintenance'  ? 'block' : 'none';
+});
+
 document.querySelector('input[name="code"]').addEventListener('input', function() {
   this.value = this.value.toUpperCase();
 });
