@@ -5,6 +5,20 @@
   <a href="{{ url_for('index') }}" class="btn btn-sm btn-outline-secondary">
     <i class="bi bi-arrow-left me-1"></i>Retour
   </a>
+  {% if current_user.peut('modifier') %}
+  <a href="{{ url_for('modifier_materiel', code=m.code) }}"
+     class="btn btn-sm btn-outline-forest">
+    <i class="bi bi-pencil me-1"></i>Modifier
+  </a>
+  <form method="POST"
+        action="{{ url_for('supprimer_materiel', code=m.code) }}"
+        class="d-inline"
+        onsubmit="return confirm('Supprimer définitivement {{ m.nom }} ({{ m.code }}) ?\n\nCette action est irréversible.')">
+    <button type="submit" class="btn btn-sm btn-outline-danger">
+      <i class="bi bi-trash me-1"></i>Supprimer
+    </button>
+  </form>
+  {% endif %}
 </div>
 <div class="row g-3">
   <div class="col-lg-8">

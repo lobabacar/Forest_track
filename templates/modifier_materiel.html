@@ -1,0 +1,76 @@
+{% extends "base.html" %}
+{% block title %}Modifier {{ m.nom }} — BEA{% endblock %}
+{% block content %}
+<div class="mb-3">
+  <a href="{{ url_for('fiche_materiel', code=m.code) }}" class="btn btn-sm btn-outline-secondary">
+    <i class="bi bi-arrow-left me-1"></i>Retour à la fiche
+  </a>
+</div>
+<div class="row justify-content-center">
+  <div class="col-lg-7">
+    <div class="card shadow-sm border-0">
+      <div class="card-header bg-transparent border-0 pt-4 pb-0">
+        <h2 class="h4 fw-bold mb-0">
+          <i class="bi bi-pencil me-2 text-forest"></i>Modifier le matériel
+        </h2>
+        <p class="text-muted small mt-1">
+          <span class="badge bg-secondary font-monospace">{{ m.code }}</span>
+        </p>
+      </div>
+      <div class="card-body pt-3">
+        <form method="POST">
+          <div class="row g-3">
+            <div class="col-12">
+              <label class="form-label fw-semibold">Nom du matériel *</label>
+              <input type="text" name="nom" class="form-control"
+                     required value="{{ m.nom }}">
+            </div>
+            <div class="col-sm-6">
+              <label class="form-label fw-semibold">Catégorie *</label>
+              <select name="categorie" class="form-select" required>
+                <option value="" disabled>Sélectionner…</option>
+                {% for cat in ['Informatique', 'Abattage', 'Transport',
+                               'Broyage', 'Plantation', 'Élagage',
+                               'Protection', 'Mesure', 'Véhicule', 'Autre'] %}
+                <option value="{{ cat }}"
+                  {% if m.categorie == cat %}selected{% endif %}>
+                  {{ cat }}
+                </option>
+                {% endfor %}
+              </select>
+            </div>
+            <div class="col-sm-6">
+              <label class="form-label fw-semibold">Numéro de série</label>
+              <input type="text" name="numero_serie" class="form-control"
+                     value="{{ m.numero_serie or '' }}">
+            </div>
+            <div class="col-sm-6">
+              <label class="form-label fw-semibold">Emplacement</label>
+              <input type="text" name="emplacement" class="form-control"
+                     value="{{ m.emplacement }}">
+            </div>
+            <div class="col-sm-6">
+              <label class="form-label fw-semibold">Date d'achat</label>
+              <input type="date" name="date_achat" class="form-control"
+                     value="{{ m.date_achat.strftime('%Y-%m-%d') if m.date_achat else '' }}">
+            </div>
+            <div class="col-12">
+              <label class="form-label fw-semibold">Description</label>
+              <textarea name="description" class="form-control"
+                        rows="4">{{ m.description or '' }}</textarea>
+            </div>
+          </div>
+          <hr class="my-4">
+          <div class="d-flex gap-2 justify-content-end">
+            <a href="{{ url_for('fiche_materiel', code=m.code) }}"
+               class="btn btn-outline-secondary">Annuler</a>
+            <button type="submit" class="btn btn-forest px-4">
+              <i class="bi bi-check-lg me-2"></i>Enregistrer les modifications
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

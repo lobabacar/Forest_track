@@ -354,6 +354,36 @@ def fiche_materiel(code):
 #     db.session.commit()
 #     flash(f'Emprunt enregistré pour {e.nom_emprunteur}.', 'success')
 #     return redirect(url_for('fiche_materiel', code=code))
+# modifier le materiel ajouter 
+@app.route('/materiel/<code>/modifier', methods=['GET', 'POST'])
+@permission_requise('modifier')
+def modifier_materiel(code):
+    m = Materiel.query.filter_by(code=code.upper()).first_or_404()
+    if request.method == 'POST':
+        m.nom          = request.form['nom']
+        m.categorie    = request.form['categorie']
+        m.numero_serie = request.form.get('numero_serie', '')
+        m.description  = request.form.get('description', '')
+        m.emplacement  = request.form.get('emplacement', m.emplacement)
+        m.date_achat   = datetime.strptime(request.form['date_achat'], '%Y-%m-%d').date() \
+                         if request.form.get('date_achat') else None
+        db.session.commit()
+        flash(f'Matériel "{m.nom}" modifié avec succès.', 'success')
+        return redirect(url_for('fiche_materiel', code=m.code))
+    return render_template('modifier_materiel.html', m=m)
+#route suprimee le materiel 
+@app.route('/materiel/<code>/supprimer', methods=['POST'])
+@permission_requise('modifier')
+def supprimer_materiel(code):
+    m = Materiel.query.filter_by(code=code.upper()).first_or_404()
+    nom = m.nom
+    # Supprimer les emprunts et maintenances liés
+    Emprunt.query.filter_by(materiel_id=m.id).delete()
+    Maintenance.query.filter_by(materiel_id=m.id).delete()
+    db.session.delete(m)
+    db.session.commit()
+    flash(f'Matériel "{nom}" supprimé définitivement.', 'success')
+    return redirect(url_for('index'))
 @app.route('/materiel/<code>/emprunter', methods=['POST'])
 @permission_requise('emprunter')
 def emprunter(code):
