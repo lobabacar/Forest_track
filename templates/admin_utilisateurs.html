@@ -31,7 +31,45 @@
     <div class="stat-label">Opérateurs</div>
   </div></div>
 </div>
-
+<!-- Barre recherche & filtre rôle -->
+<form method="GET" action="{{ url_for('admin_utilisateurs') }}" class="mb-3">
+  <div class="card shadow-sm border-0">
+    <div class="card-body py-2">
+      <div class="row g-2 align-items-center">
+        <div class="col-md-6">
+          <div class="input-group">
+            <span class="input-group-text bg-white border-end-0">
+              <i class="bi bi-search text-muted"></i>
+            </span>
+            <input type="text" name="q" class="form-control border-start-0"
+                   placeholder="Rechercher par nom ou email…"
+                   value="{{ recherche }}"
+                   onchange="this.form.submit()">
+          </div>
+        </div>
+        <div class="col-md-4">
+          <select name="role" class="form-select" onchange="this.form.submit()">
+            <option value="">Tous les rôles</option>
+            {% for role_val, role_nom in roles.items() %}
+            <option value="{{ role_val }}"
+              {% if role_filtre == role_val %}selected{% endif %}>
+              {{ role_nom }}
+            </option>
+            {% endfor %}
+          </select>
+        </div>
+        <div class="col-md-2 text-end">
+          <a href="{{ url_for('admin_utilisateurs') }}"
+             class="btn btn-outline-secondary btn-sm">
+            <i class="bi bi-x-lg"></i>
+          </a>
+        </div>
+      </div>
+    </div>
+  </div>
+</form>
+<!-- ↑↑↑ FIN BARRE DE RECHERCHE ↑↑↑ -->
+ <!-- Tableau utilisateurs (existant) -->
 <div class="card shadow-sm border-0 mb-3">
   <div class="card-body p-0">
     <div class="table-responsive">
@@ -92,7 +130,75 @@
     </div>
   </div>
 </div>
+<!-- Pagination -->
+{% if pagination.pages > 1 %}
+<div class="d-flex align-items-center justify-content-between mt-3 flex-wrap gap-2">
 
+  <div class="text-muted small">
+    Affichage de
+    <strong>{{ (pagination.page - 1) * pagination.per_page + 1 }}</strong>
+    à
+    <strong>{{ [pagination.page * pagination.per_page, pagination.total] | min }}</strong>
+    sur <strong>{{ pagination.total }}</strong> utilisateurs
+  </div>
+
+  <nav>
+    <ul class="pagination pagination-sm mb-0">
+      <li class="page-item {% if not pagination.has_prev %}disabled{% endif %}">
+        <a class="page-link" href="{{ url_for('admin_utilisateurs', page=1,
+           q=recherche, role=role_filtre) }}">
+          <i class="bi bi-chevron-double-left"></i>
+        </a>
+      </li>
+      <li class="page-item {% if not pagination.has_prev %}disabled{% endif %}">
+        <a class="page-link" href="{{ url_for('admin_utilisateurs',
+           page=pagination.prev_num, q=recherche, role=role_filtre) }}">
+          <i class="bi bi-chevron-left"></i>
+        </a>
+      </li>
+      {% for p in pagination.iter_pages(left_edge=1, right_edge=1,
+                                        left_current=2, right_current=2) %}
+        {% if p %}
+          <li class="page-item {% if p == pagination.page %}active{% endif %}">
+            <a class="page-link" href="{{ url_for('admin_utilisateurs', page=p,
+               q=recherche, role=role_filtre) }}">{{ p }}</a>
+          </li>
+        {% else %}
+          <li class="page-item disabled"><span class="page-link">…</span></li>
+        {% endif %}
+      {% endfor %}
+      <li class="page-item {% if not pagination.has_next %}disabled{% endif %}">
+        <a class="page-link" href="{{ url_for('admin_utilisateurs',
+           page=pagination.next_num, q=recherche, role=role_filtre) }}">
+          <i class="bi bi-chevron-right"></i>
+        </a>
+      </li>
+      <li class="page-item {% if not pagination.has_next %}disabled{% endif %}">
+        <a class="page-link" href="{{ url_for('admin_utilisateurs',
+           page=pagination.pages, q=recherche, role=role_filtre) }}">
+          <i class="bi bi-chevron-double-right"></i>
+        </a>
+      </li>
+    </ul>
+  </nav>
+
+  <div class="d-flex align-items-center gap-2">
+    <span class="text-muted small">Par page :</span>
+    <select class="form-select form-select-sm" style="width:70px"
+            onchange="window.location.href='{{ url_for('admin_utilisateurs',
+                      q=recherche, role=role_filtre) }}&per_page='+this.value">
+      <option value="10" {% if pagination.per_page == 10 %}selected{% endif %}>10</option>
+      <option value="25" {% if pagination.per_page == 25 %}selected{% endif %}>25</option>
+      <option value="50" {% if pagination.per_page == 50 %}selected{% endif %}>50</option>
+    </select>
+  </div>
+
+</div>
+{% else %}
+<div class="text-muted small mt-2">
+  {{ pagination.total }} utilisateur{% if pagination.total > 1 %}s{% endif %} au total
+</div>
+{% endif %}
 <div class="card shadow-sm border-0">
   <div class="card-body">
     <h6 class="fw-semibold mb-3 text-muted text-uppercase small">

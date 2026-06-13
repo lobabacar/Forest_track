@@ -222,8 +222,35 @@ def profil():
 @app.route('/admin/utilisateurs')
 @admin_requis
 def admin_utilisateurs():
-    users = Utilisateur.query.order_by(Utilisateur.created_at.desc()).all()
-    return render_template('admin_utilisateurs.html', users=users, roles=ROLE_LABELS)
+    page     = request.args.get('page', 1, type=int)
+    par_page = request.args.get('per_page', 10, type=int)
+    if par_page not in [10, 25, 50]:
+        par_page = 10
+
+    recherche = request.args.get('q', '')
+    role_filtre = request.args.get('role', '')
+
+    query = Utilisateur.query
+
+    if recherche:
+        query = query.filter(
+            db.or_(
+                Utilisateur.nom.ilike(f'%{recherche}%'),
+                Utilisateur.email.ilike(f'%{recherche}%')
+            )
+        )
+    if role_filtre:
+        query = query.filter(Utilisateur.role == role_filtre)
+
+    pagination = query.order_by(Utilisateur.created_at.desc())\
+                      .paginate(page=page, per_page=par_page, error_out=False)
+
+    return render_template('admin_utilisateurs.html',
+                           users=pagination.items,
+                           pagination=pagination,
+                           roles=ROLE_LABELS,
+                           recherche=recherche,
+                           role_filtre=role_filtre)
 
 @app.route('/admin/utilisateurs/nouveau', methods=['GET', 'POST'])
 @admin_requis
