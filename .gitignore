@@ -7,3 +7,4 @@ __pycache__/
 venv/
 .venv/
 .DS_Store
+import_utilisateurs.py    # ← fichier d'import des utilisateurs, à ne pas versionner
