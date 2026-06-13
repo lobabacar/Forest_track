@@ -378,6 +378,7 @@ def nouveau_materiel():
             numero_serie = request.form.get('numero_serie', ''),
             description  = request.form.get('description', ''),
             emplacement  = request.form.get('emplacement', 'Dépôt principal'),
+            statut       = request.form.get('statut', 'disponible'),   # ← AJOUTEZ CETTE LIGNE
             cree_par_id  = current_user.id,
             date_achat   = datetime.strptime(request.form['date_achat'], '%Y-%m-%d').date()
                            if request.form.get('date_achat') else None
