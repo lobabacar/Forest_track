@@ -9,6 +9,12 @@ from datetime import datetime
 from functools import wraps
 from dotenv import load_dotenv
 import qrcode, io, base64
+from flask import send_file
+from openpyxl import Workbook
+from openpyxl.drawing.image import Image as XLImage
+from openpyxl.styles import Font, Alignment
+
+
 # ─── UTILITAIRE RETARDS ──────────────────────────────────────
 def get_emprunts_en_retard():
     """Retourne tous les emprunts actifs dont la date de retour prévue est dépassée."""
@@ -667,6 +673,50 @@ def manifest():
 def service_worker():
     return send_from_directory('static', 'sw.js',
                                mimetype='application/javascript')
+# exporter le fichier excel des codes QR
+@app.route('/export/qr-excel')
+@permission_requise('modifier')
+def export_qr_excel():
+    base_url = request.host_url.rstrip('/')
+    query = Materiel.query.order_by(Materiel.code)
+    emplacement = request.args.get('emplacement')
+    if emplacement:
+        statut = request.args.get('statut')
+        if statut:
+            query = query.filter_by(statut=statut)
+            
+        query = query.filter_by(emplacement=emplacement)
+
+    wb = Workbook()
+    ws = wb.active
+    ws.title = 'QR codes'
+    ws.append(['QR code', 'Code', 'Nom', 'Catégorie', 'Emplacement', 'Statut'])
+    for c in ws[1]:
+        c.font = Font(bold=True)
+    for col, w in zip('ABCDEF', [22, 12, 40, 20, 25, 14]):
+        ws.column_dimensions[col].width = w
+
+    for i, m in enumerate(query.all(), start=2):
+        ws.append(['', m.code, m.nom, m.categorie, m.emplacement, m.statut])
+        ws.row_dimensions[i].height = 120
+        qr = qrcode.QRCode(box_size=4, border=2,
+                           error_correction=qrcode.constants.ERROR_CORRECT_M)
+        qr.add_data(f"{base_url}/materiel/{m.code}")
+        qr.make(fit=True)
+        buf = io.BytesIO()
+        qr.make_image(fill_color='black', back_color='white').save(buf, format='PNG')
+        buf.seek(0)
+        img = XLImage(buf)
+        img.width = img.height = 150
+        ws.add_image(img, f'A{i}')
+        for c in ws[i][1:]:
+            c.alignment = Alignment(vertical='center', wrap_text=True)
+
+    out = io.BytesIO()
+    wb.save(out)
+    out.seek(0)
+    return send_file(out, as_attachment=True, download_name='qr_materiels.xlsx',
+                     mimetype='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet')
 
 # ─── INIT DÉMO ───────────────────────────────────────────────
 def init_demo():
@@ -691,6 +741,7 @@ with app.app_context():
 
 if __name__ == '__main__':
     app.run(debug=True)
+
 # def init_demo():
 #     if Utilisateur.query.count() > 0:
 #         return
