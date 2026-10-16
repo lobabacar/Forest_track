@@ -42,7 +42,7 @@
       </div>
       {% endfor %}
     {% endwith %}
-    <form method="POST" action="{{ url_for('login', next=request.args.get('next') }}">
+    <form method="POST" action="{{ url_for('login', next=request.args.get('next')) }}">
       <div class="mb-3">
         <label class="form-label fw-semibold small">Adresse email</label>
         <div class="input-group">
