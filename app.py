@@ -681,11 +681,11 @@ def export_qr_excel():
     query = Materiel.query.order_by(Materiel.code)
     emplacement = request.args.get('emplacement')
     if emplacement:
-        statut = request.args.get('statut')
-        if statut:
-            query = query.filter_by(statut=statut)
             
         query = query.filter_by(emplacement=emplacement)
+    statut = request.args.get('statut')
+    if statut:
+                query = query.filter_by(statut=statut)
 
     wb = Workbook()
     ws = wb.active
