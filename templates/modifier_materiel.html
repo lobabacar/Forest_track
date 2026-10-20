@@ -27,16 +27,18 @@
             </div>
             <div class="col-sm-6">
               <label class="form-label fw-semibold">Catégorie *</label>
+              {% set categories = ['Informatique', 'Santé/Sécurité', 'GPS', 'Item corporatif',
+                     'Milieux humides', 'Licence logiciel', 'Papeterie', 'Jardin',
+                     'Plantation', 'Foresterie', 'Repère terrain', "Échantillon d'eau",
+                     'Livre/guide scientifique', 'Autre'] %}
               <select name="categorie" class="form-select" required>
                 <option value="" disabled>Sélectionner…</option>
-                {% for cat in ['Informatique', 'Abattage', 'Transport',
-                               'Broyage', 'Plantation', 'Élagage',
-                               'Protection', 'Mesure', 'Véhicule', 'Autre'] %}
-                <option value="{{ cat }}"
-                  {% if m.categorie == cat %}selected{% endif %}>
-                  {{ cat }}
-                </option>
+                {% for cat in categories %}
+                <option value="{{ cat }}" {% if m.categorie == cat %}selected{% endif %}>{{ cat }}</option>
                 {% endfor %}
+                {% if m.categorie and m.categorie not in categories %}
+                <option value="{{ m.categorie }}" selected>{{ m.categorie }} (ancienne)</option>
+                {% endif %}
               </select>
             </div>
             <div class="col-sm-6">
