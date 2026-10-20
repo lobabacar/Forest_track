@@ -458,11 +458,36 @@ def fiche_materiel(code):
 #     flash(f'Emprunt enregistré pour {e.nom_emprunteur}.', 'success')
 #     return redirect(url_for('fiche_materiel', code=code))
 # modifier le materiel ajouter 
+# @app.route('/materiel/<code>/modifier', methods=['GET', 'POST'])
+# @permission_requise('modifier')
+# def modifier_materiel(code):
+#     m = Materiel.query.filter_by(code=code.upper()).first_or_404()
+#     if request.method == 'POST':
+#         m.nom          = request.form['nom']
+#         m.categorie    = request.form['categorie']
+#         m.numero_serie = request.form.get('numero_serie', '')
+#         m.description  = request.form.get('description', '')
+#         m.emplacement  = request.form.get('emplacement', m.emplacement)
+#         m.date_achat   = datetime.strptime(request.form['date_achat'], '%Y-%m-%d').date() \
+#                          if request.form.get('date_achat') else None
+#         db.session.commit()
+#         flash(f'Matériel "{m.nom}" modifié avec succès.', 'success')
+#         return redirect(url_for('fiche_materiel', code=m.code))
+#     return render_template('modifier_materiel.html', m=m)
 @app.route('/materiel/<code>/modifier', methods=['GET', 'POST'])
 @permission_requise('modifier')
 def modifier_materiel(code):
     m = Materiel.query.filter_by(code=code.upper()).first_or_404()
+    emprunt_actif = Emprunt.query.filter_by(materiel_id=m.id, actif=True).first()
+
     if request.method == 'POST':
+        nouveau_statut = request.form.get('statut', m.statut)
+        personne = request.form.get('personne', '').strip()
+
+        if nouveau_statut == 'utilisation' and not personne:
+            flash("Indiquez le nom de la personne pour un matériel en utilisation.", 'warning')
+            return render_template('modifier_materiel.html', m=m, emprunt_actif=emprunt_actif)
+
         m.nom          = request.form['nom']
         m.categorie    = request.form['categorie']
         m.numero_serie = request.form.get('numero_serie', '')
@@ -470,10 +495,24 @@ def modifier_materiel(code):
         m.emplacement  = request.form.get('emplacement', m.emplacement)
         m.date_achat   = datetime.strptime(request.form['date_achat'], '%Y-%m-%d').date() \
                          if request.form.get('date_achat') else None
+
+        if nouveau_statut == 'utilisation':
+            if emprunt_actif:
+                emprunt_actif.nom_emprunteur = personne
+            else:
+                db.session.add(Emprunt(materiel_id=m.id, utilisateur_id=current_user.id,
+                                       nom_emprunteur=personne,
+                                       chantier='Assigne personnellement', actif=True))
+        elif emprunt_actif:
+            emprunt_actif.actif = False
+            emprunt_actif.date_retour = datetime.utcnow()
+
+        m.statut = nouveau_statut
         db.session.commit()
         flash(f'Matériel "{m.nom}" modifié avec succès.', 'success')
         return redirect(url_for('fiche_materiel', code=m.code))
-    return render_template('modifier_materiel.html', m=m)
+
+    return render_template('modifier_materiel.html', m=m, emprunt_actif=emprunt_actif)
 #route suprimee le materiel 
 @app.route('/materiel/<code>/supprimer', methods=['POST'])
 @permission_requise('modifier')

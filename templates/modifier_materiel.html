@@ -54,6 +54,29 @@
               <input type="date" name="date_achat" class="form-control"
                      value="{{ m.date_achat.strftime('%Y-%m-%d') if m.date_achat else '' }}">
             </div>
+            <div class="row g-3 mb-3">
+  <div class="col-md-6">
+    <label class="form-label fw-semibold">Statut *</label>
+    <select name="statut" id="selectStatut" class="form-select" required>
+      <option value="disponible"  {% if m.statut == 'disponible' %}selected{% endif %}>✅ Disponible</option>
+      <option value="utilisation" {% if m.statut == 'utilisation' %}selected{% endif %}>🔴 En utilisation</option>
+      <option value="maintenance" {% if m.statut == 'maintenance' %}selected{% endif %}>🟡 En maintenance</option>
+    </select>
+  </div>
+  <div class="col-md-6" id="blocPersonne">
+    <label class="form-label fw-semibold">Personne responsable *</label>
+    <input type="text" name="personne" class="form-control" placeholder="Ex. : Zoe St-Onge"
+           value="{{ emprunt_actif.nom_emprunteur if emprunt_actif else '' }}">
+  </div>
+</div>
+<script>
+  const sel = document.getElementById('selectStatut');
+  const bloc = document.getElementById('blocPersonne');
+  function majPersonne() { bloc.style.display = sel.value === 'utilisation' ? '' : 'none'; }
+  sel.addEventListener('change', majPersonne);
+  majPersonne();
+</script>
+
             <div class="col-12">
               <label class="form-label fw-semibold">Description</label>
               <textarea name="description" class="form-control"
